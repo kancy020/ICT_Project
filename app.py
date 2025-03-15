@@ -1,5 +1,3 @@
-from flask import Flask
-
 from flask import Flask, Response
 from flask import request as flask_request
 
@@ -21,5 +19,10 @@ def inbound():
     payload = flask_request.get_json()
 
     #once the challenge request it recieved repond to successfully initialise request
-    if payload:
+    if payload and 'challenge' in payload:
         return Response(payload['challenge']), 200
+    
+    return Response("Missing challenge key", status=400)
+
+if __name__ == '__main__':
+    app.run(debug=True)
