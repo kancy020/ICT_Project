@@ -5,24 +5,10 @@ from flask import request as flask_request
 app = Flask(__name__)
 
 #get method to produce a response on the url 
-@app.route("/", methods=['GET'])
-def hello():
-    return Response("Hello, World!"), 200
-
-#post method to test the generated token
-@app.route('/verify', methods=['POST'])
-def inbound():
-    """
-    testing to see if token worked
-    """
-    #payload from flask handles the JSON file request
-    payload = flask_request.get_json()
-
-    #once the challenge request it recieved repond to successfully initialise request
-    if payload and 'challenge' in payload:
-        return Response(payload['challenge']), 200
-    
-    return Response("Missing challenge key", status=400)
+@app.route('/slack/command', methods=['POST'])
+def command():
+    data = flask_request.form
+    return Response("command is recieved", status=200)
 
 if __name__ == '__main__':
     app.run(debug=True)
