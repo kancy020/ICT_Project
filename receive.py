@@ -1,22 +1,22 @@
 import os
-from flask import Flask, request, Response
-
+from flask import Flask, request, Response, jsonify
 
 app = Flask(__name__)
 
-SLACK_WEBHOOK_SECRET = os.environ.get('SLACK_WEBHOOK_SECRET')
+SLACK_SIGNING_SECRET = os.environ.get("SLACK_SIGNING_SECRET")
 
+@app.route('/slack/events', methods=['POST'])
+def slack_events():
+    """
+    Handles incoming Slack Event Subscriptions.
+    """
+    payload = request.get_json()
 
-@app.route('/slack', methods=['POST'])
-def inbound():
-    if request.form.get('token') == SLACK_WEBHOOK_SECRET:
-        channel = request.form.get('channel_name')
-        username = request.form.get('user_name')
-        text = request.form.get('text')
-        inbound_message = username + " in " + channel + " says: " + text
-        print(inbound_message)
+    # Slack URL Verification (needed when enabling event subscriptions)
+    if "challenge" in payload:
+        return jsonify({"challenge": payload["challenge"]})
+    
     return Response(), 200
-
 
 @app.route('/', methods=['GET'])
 def test():
@@ -24,4 +24,4 @@ def test():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=8888) 
