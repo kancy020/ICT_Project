@@ -1,17 +1,14 @@
 import os
 from flask import Flask, request, Response, jsonify
+import logging
 
 app = Flask(__name__)
 
-# Load Slack secrets
 SLACK_SIGNING_SECRET = os.environ.get("SLACK_SIGNING_SECRET")
 
 
 @app.route('/slack/events', methods=['POST'])
 def slack_events():
-    """
-    Handles incoming Slack Event Subscriptions.
-    """
     payload = request.get_json()
 
     # Slack URL Verification (needed when enabling event subscriptions)
@@ -22,13 +19,14 @@ def slack_events():
 
 @app.route('/slack/command', methods=['POST'])
 def slack_command():
+    data = request.form
+    logging.debug("slack command is receieved: %s", data)
     return Response(), 200
-    # data = request.form
-    # return jsonify({"response_type": "ephemeral", "text": f"Received: {data.get('text')}"})
+
 
 @app.route('/', methods=['GET'])
 def test():
-    return Response('It works!')
+    return Response('It works!'), 200
 
 
 if __name__ == "__main__":
