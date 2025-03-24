@@ -19,9 +19,10 @@ def slack_events():
 
 @app.route('/slack/command', methods=['POST'])
 def slack_command():
-    data = request.form
-    logging.debug("slack command is receieved: %s", data)
-    return Response(), 200
+    gatheringText = request.form.get('text', '')
+    user =  request.form.get('user_name')
+    print(f"text received from slash command {gatheringText}")
+    return f"{user}: sent {gatheringText} to the pixel display ", 200
 
 
 @app.route('/', methods=['GET'])
