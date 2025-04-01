@@ -26,9 +26,10 @@ def slack_command():
 
     
 
-    if (gather text)
+    if (gatheringText):
 
-    return f"{user}: sent {gatheringText} to the pixel display ", 200
+        return f"{user}: sent {gatheringText} to the pixel display ", 200
+    
 
 
 @app.route('/', methods=['GET'])
