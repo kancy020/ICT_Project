@@ -1,6 +1,6 @@
 import os
+import send
 from flask import Flask, request, Response, jsonify
-import logging
 
 app = Flask(__name__)
 
@@ -21,7 +21,13 @@ def slack_events():
 def slack_command():
     gatheringText = request.form.get('text', '')
     user =  request.form.get('user_name')
+
     print(f"text received from slash command {gatheringText}")
+
+    
+
+    if (gather text)
+
     return f"{user}: sent {gatheringText} to the pixel display ", 200
 
 
