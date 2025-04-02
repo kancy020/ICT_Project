@@ -1,5 +1,6 @@
 
 import requests
+import receive
 
 #raspPi = put in raspberry pi IP <-- delete up to equals sign, remove the comment and place the raspPi ip after the equals symbol #  #here 
 

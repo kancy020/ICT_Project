@@ -1,6 +1,7 @@
 import os
 import send
 import emoji_list
+import slack_features
 from flask import Flask, request, Response, jsonify
 
 app = Flask(__name__)
@@ -36,8 +37,10 @@ def slack_command():
     }
     
     if(gathering_text == 'coffee'):
-        print("Please enter length of time")
-        
+        return "Please enter length of time", 200
+    
+    
+
     
 
 

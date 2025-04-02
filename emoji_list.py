@@ -1,6 +1,13 @@
 import emoji
 emoji_convertedImage = emoji.emojize()
-emojiList = [
+
+default_emojis = [
+    "coffee",
+    "!",
+    "timer"
+]
+_
+emoji_list = [
 "+1",
 "-1",
 "100",
