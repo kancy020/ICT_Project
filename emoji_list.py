@@ -1,11 +1,5 @@
 import emoji 
 
-default_emojis = [
-    "coffee",
-    "!",
-    "timer"
-]
-
 emoji_list = [
 "+1",
 "-1",
@@ -209,6 +203,7 @@ emoji_list = [
 "collision",
 "computer",
 "confetti_ball"
+":heart:",
 "pill",
 "pineapple",
 "pisces",

@@ -2,7 +2,7 @@ import os
 from flask import Flask, request, Response, jsonify
 import threading
 import time
-from emoji_list import default_emojis
+from emoji_list import emoji_list
 
 app = Flask(__name__)
 
@@ -21,25 +21,29 @@ def slack_events():
 
 @app.route('/slack/command', methods=['POST'])
 def slack_command():
+    print("inside slack command")
     gathering_text = request.form.get('text', '')
     user =  request.form.get('user_name')
 
-    print(f"text received from slash command {gathering_text}")
+    print(f"gathering_text: '{gathering_text}'") 
 
-    if (gathering_text):
-        return f"{user}: sent {gathering_text} to the pixel display", 200
-    
-    if (gathering_text not in default_emojis): 
-            print("emoji not found. Please try again")
-            return "Emoji not found. Please try again", 400
-    
-    
-    if(gathering_text == 'coffee'):
-       response_message = f"{user}: set timer for {gathering_text} minutes", 200
-       threading.Thread(target=coffee_timer, args=(5,)).start()
-       return response_message, 200
-    
-    
+    split_input = gathering_text.split()
+
+    if(len(split_input) > 1 ):
+        emoji_input = split_input[0]
+        emoji_input1 = split_input[1]
+
+        if(emoji_input == 'coffee'or ':coffee:'):
+            strToNum = int(emoji_input1)
+            if(emoji_input1.isdigit()):
+                threading.Thread(target=coffee_timer, args=(strToNum,)).start()
+                return f"{user}: set timer for {strToNum} minutes", 200
+
+    if (gathering_text in emoji_list):
+            print(f"{user}: sent {gathering_text} to the pixel display")
+            return f"{user}: sent {gathering_text} to the pixel display"
+
+
 
 def coffee_timer(minutes = 5 ):
         seconds = minutes * 60
