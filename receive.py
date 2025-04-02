@@ -38,5 +38,5 @@ def test():
 
 
 if __name__ == "__main__":
-    send.default_welcome_sign()
+    #send.default_welcome_sign()
     app.run(debug=True, port=8888) 
