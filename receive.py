@@ -39,9 +39,11 @@ def slack_command():
                 threading.Thread(target=coffee_timer, args=(strToNum,)).start()
                 return f"{user}: set timer for {strToNum} minutes", 200
 
-    if (gathering_text in emoji_list):
+    if (gathering_text):
             print(f"{user}: sent {gathering_text} to the pixel display")
             return f"{user}: sent {gathering_text} to the pixel display"
+    else:
+         return "No text"
 
 
 
