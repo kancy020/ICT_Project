@@ -19,16 +19,16 @@ def slack_events():
 
 @app.route('/slack/command', methods=['POST'])
 def slack_command():
-    gatheringText = request.form.get('text', '')
+    gathering_Text = request.form.get('text', '')
     user =  request.form.get('user_name')
 
-    print(f"text received from slash command {gatheringText}")
+    print(f"text received from slash command {gathering_Text}")
 
     
 
-    if (gatheringText):
+    if (gathering_Text):
 
-        return f"{user}: sent {gatheringText} to the pixel display ", 200
+        return f"{user}: sent {gathering_Text} to the pixel display ", 200
     
 
 
@@ -38,4 +38,5 @@ def test():
 
 
 if __name__ == "__main__":
+    send.default_welcome_sign()
     app.run(debug=True, port=8888) 
