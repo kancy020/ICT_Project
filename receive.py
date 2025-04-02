@@ -1,8 +1,11 @@
 import os
 import send
+import emoji_list
 from flask import Flask, request, Response, jsonify
 
 app = Flask(__name__)
+
+emoji_list
 
 SLACK_SIGNING_SECRET = os.environ.get("SLACK_SIGNING_SECRET")
 
@@ -19,16 +22,22 @@ def slack_events():
 
 @app.route('/slack/command', methods=['POST'])
 def slack_command():
-    gathering_Text = request.form.get('text', '')
+    gathering_text = request.form.get('text', '')
     user =  request.form.get('user_name')
 
-    print(f"text received from slash command {gathering_Text}")
+    print(f"text received from slash command {gathering_text}")
 
+    if (gathering_text):
+
+        return f"{user}: sent {gathering_text} to the pixel display ", 200
     
-
-    if (gathering_Text):
-
-        return f"{user}: sent {gathering_Text} to the pixel display ", 200
+    while(gathering_text not in emoji_list.default_emojis): {
+            print("emoji not found. Please try again")
+    }
+    
+    if(gathering_text == 'coffee'):
+        print("Please enter length of time")
+        
     
 
 
