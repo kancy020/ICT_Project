@@ -1,12 +1,10 @@
 import os
-import send
-import emoji_list
-import slack_features
 from flask import Flask, request, Response, jsonify
+import threading
+import time
+from emoji_list import default_emojis
 
 app = Flask(__name__)
-
-emoji_list
 
 SLACK_SIGNING_SECRET = os.environ.get("SLACK_SIGNING_SECRET")
 
@@ -29,21 +27,29 @@ def slack_command():
     print(f"text received from slash command {gathering_text}")
 
     if (gathering_text):
-
-        return f"{user}: sent {gathering_text} to the pixel display ", 200
+        return f"{user}: sent {gathering_text} to the pixel display", 200
     
-    while(gathering_text not in emoji_list.default_emojis): {
+    if (gathering_text not in default_emojis): 
             print("emoji not found. Please try again")
-    }
+            return "Emoji not found. Please try again", 400
+    
     
     if(gathering_text == 'coffee'):
-        return "Please enter length of time", 200
+       response_message = f"{user}: set timer for {gathering_text} minutes", 200
+       threading.Thread(target=coffee_timer, args=(5,)).start()
+       return response_message, 200
     
     
 
+def coffee_timer(minutes = 5 ):
+        seconds = minutes * 60
+        while seconds:
+            mins,secs = divmod(seconds, 60)
+            timeformat = f'\r{mins:02d}:{secs:02d}'
+            print(timeformat, end='', flush=True)
+            time.sleep(1)
+            seconds -= 1
     
-
-
 @app.route('/', methods=['GET'])
 def test():
     return Response('It works!'), 200
