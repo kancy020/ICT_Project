@@ -14,5 +14,13 @@ def default_welcome_sign():
     response = requests.post(raspPi, json=payload)
     return response.json()
 
+if __name__ == "__main__":
+    response_emoji = send_emoji("smile")
+    print("Emoji response:", response_emoji)
+
+    response_welcome = default_welcome_sign()
+    print("Welcome response:", response_welcome)
+
+
 
 
