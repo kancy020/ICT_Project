@@ -1,51 +1,103 @@
 import os
-import send
-import emoji_list
 from flask import Flask, request, Response, jsonify
+import threading
+import time
+from emoji_list import emoji_list
+import send
+import subprocess
 
+#Initialising the Flask application
 app = Flask(__name__)
 
-emoji_list
-
+#Getting slack signing secret from enviorment
 SLACK_SIGNING_SECRET = os.environ.get("SLACK_SIGNING_SECRET")
 
-
+#Endpoint to which the slack events are received which are cnnected via a challenge request response
 @app.route('/slack/events', methods=['POST'])
 def slack_events():
     payload = request.get_json()
 
-    # Slack URL Verification (needed when enabling event subscriptions)
+    #The challenge request prompted by URL to slack server
     if "challenge" in payload:
         return jsonify({"challenge": payload["challenge"]})
     
     return Response(), 200
 
+#This POST method houses the main features of the program through the slack command intergration
 @app.route('/slack/command', methods=['POST'])
 def slack_command():
+    #Checks if the pixel display is online
+    check_if_online
+    print("inside slack command")
+    #Gathers the text from the form, i.e {text: 'smiley_emoji'}
     gathering_text = request.form.get('text', '')
+    #Gathers the name of the user who sent the text, i.e {user_id: chrisk}
     user =  request.form.get('user_name')
 
-    print(f"text received from slash command {gathering_text}")
+    #prints log for error checking
+    print(f"gathering_text: '{gathering_text}'") 
 
+    #Slpits the text for feature use as some feature require multiple inputs
+    split_input = gathering_text.split()
+
+    #If statement that checks if the input it larger than 1 word long, if it is, it splits the words up into two words
+    if(len(split_input) > 1 ):
+        emoji_input = split_input[0]
+        emoji_input1 = split_input[1]
+
+        #Checks if the first word is coffee, if it is check the second word for a digit for timer input
+        if(emoji_input == 'coffee'or ':coffee:'):
+            strToNum = int(emoji_input1)
+            if(emoji_input1.isdigit()):
+                #Seperates times into seperate thread so other features can execute without disrupting the timer
+                threading.Thread(target=coffee_timer, args=(strToNum,)).start()
+                return f"{user}: set timer for {strToNum} minutes", 200
+
+    #Generic response to the slack application displaying what the user command was
     if (gathering_text):
-
-        return f"{user}: sent {gathering_text} to the pixel display ", 200
-    
-    while(gathering_text not in emoji_list.default_emojis): {
-            print("emoji not found. Please try again")
-    }
-    
-    if(gathering_text == 'coffee'):
-        print("Please enter length of time")
-        
+            print(f"{user}: sent {gathering_text} to the pixel display")
+            return f"{user}: sent {gathering_text} to the pixel display"
+    else:
+         return "No text"
     
 
 
+
+#Coffee timer with default set time of 5 minutes
+def coffee_timer(minutes = 5 ):
+        #The following code creates a realistic countdown timer using divod functions and specific format layouts
+        seconds = minutes * 60
+        while seconds:
+            mins,secs = divmod(seconds, 60)
+            timeformat = f'\r{mins:02d}:{secs:02d}'
+            print(timeformat, end='', flush=True)
+            time.sleep(1)
+            seconds -= 1
+
+#Checks if the pixel display is returning a ping, if it doesnt, the status of the device if offline
+async def check_if_online():
+    is_connected = True
+    #A loop to continuously check if the display is offline in the backgorund
+    while is_connected:
+        #Using subprocessing ping the device and awaits for reponse
+        res = subprocess.call(["ping", "192.168.68.110", "-c1", "-W2", "-q"])
+        #Handling the execution based onf result 
+        if(res == 0):
+            #Sleeps the thread for 10 seconds before checking if offline again
+            time.sleep(10)
+        elif(res == 1 or res == 2):
+             #Returns a reponse to slack if it is disconnected
+             return "The pixel dislay has been disconnected"
+
+
+
+#Test for connectivity of route
 @app.route('/', methods=['GET'])
 def test():
     return Response('It works!'), 200
 
-
+#Main execution of program
 if __name__ == "__main__":
-    #send.default_welcome_sign()
+    #send the welcome sign on startup
+    send.default_welcome_sign()
     app.run(debug=True, port=8888) 
