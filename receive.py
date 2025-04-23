@@ -44,6 +44,8 @@ def slack_command():
             return f"{user}: sent {gathering_text} to the pixel display"
     else:
          return "No text"
+    
+    
 
 
 
@@ -55,6 +57,9 @@ def coffee_timer(minutes = 5 ):
             print(timeformat, end='', flush=True)
             time.sleep(1)
             seconds -= 1
+
+def offline_message():
+     
     
 @app.route('/', methods=['GET'])
 def test():
