@@ -1,5 +1,5 @@
  
-#list of emojis
+#Large list of emoji references, spanning over 1000 emojis for user input
 emoji_list = [
 ":+1:", ":-1:", ":100:", ":1234:", ":8ball:", ":ab:", ":abc:", ":abcd:", ":accept:", ":adult:", ":aerial_tramway:", ":airplane_arriving:", ":airplane_departure:", ":alarm_clock:", ":alien:",  
 ":ambulance:", ":amphora:", ":anchor:", ":angel:", ":anger:", ":angry:", ":anguished:", ":ant:", ":apple:", ":aquarius:", ":aries:", ":arrow_double_down:", ":arrow_double_up:", ":arrow_down_small:", ":arrow_up_small:",  
