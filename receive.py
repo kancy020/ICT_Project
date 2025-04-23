@@ -2,7 +2,7 @@ import os
 from flask import Flask, request, Response, jsonify
 import threading
 import time
-from emoji_list import emoji_list
+import emoji_list
 import send
 import subprocess
 
