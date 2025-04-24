@@ -2,7 +2,6 @@ import os
 from flask import Flask, request, Response, jsonify
 import threading
 import time
-import emoji_list
 import send
 import subprocess
 
@@ -26,8 +25,6 @@ def slack_events():
 #This POST method houses the main features of the program through the slack command intergration
 @app.route('/slack/command', methods=['POST'])
 def slack_command():
-    #Checks if the pixel display is online
-    check_if_online
     print("inside slack command")
     #Gathers the text from the form, i.e {text: 'smiley_emoji'}
     gathering_text = request.form.get('text', '')
@@ -75,19 +72,33 @@ def coffee_timer(minutes = 5 ):
             seconds -= 1
 
 #Checks if the pixel display is returning a ping, if it doesnt, the status of the device if offline
-async def check_if_online():
-    is_connected = True
+def check_if_online():
     #A loop to continuously check if the display is offline in the backgorund
-    while is_connected:
-        #Using subprocessing ping the device and awaits for reponse
+    while True:
+        #Using subprocessing to the device and awaits for reponse
         res = subprocess.call(["ping", "192.168.68.110", "-c1", "-W2", "-q"])
-        #Handling the execution based onf result 
+        #Handling the execution based on result 
         if(res == 0):
             #Sleeps the thread for 10 seconds before checking if offline again
             time.sleep(10)
-        elif(res == 1 or res == 2):
-             #Returns a reponse to slack if it is disconnected
-             return "The pixel dislay has been disconnected"
+        else:
+            #Returns a reponse to slack if it is disconnected
+            send.slack_alert("Network connection has been lost to the pixel display")
+
+            #Retry to see if the pixel display has reconnected
+            while True:
+                #Sleep timer 
+                time.sleep(10)
+                #Using subprocessing to the device and awaits for reponse
+                res = subprocess.call(["ping", "192.168.68.110", "-c1", "-W2", "-q"])
+                if(res == 0):
+                    #Producing alert to the slack workspace
+                    send.slack_alert("Network is now connected to the pixel display")
+                    break
+     
+                
+         
+       
 
 
 
@@ -99,5 +110,6 @@ def test():
 #Main execution of program
 if __name__ == "__main__":
     #send the welcome sign on startup
-    send.default_welcome_sign()
+    #send.default_welcome_sign()
+    threading.Thread(target=check_if_online, daemon=True).start()
     app.run(debug=True, port=8888) 
