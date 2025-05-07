@@ -1,7 +1,7 @@
 import threading
 import time
 import requests
-from slack_sdk import WebClient
+
 
 class HeartbeatMonitor:
     def __init__(self, check_url: str, slack_client: WebClient, channel: str):
