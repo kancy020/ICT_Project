@@ -20,7 +20,8 @@ class State():
 
 
 status = State.ON
-
+timer_thread = None
+cancel_event = threading.Event()
 
 
 """
@@ -72,6 +73,8 @@ def slack_command():
                     #Chnages status to timer to indiciate that the state of the system is running a timer
                     status = State.TIMER
                     #Seperates time into thread execution
+                    global timer_thread
+                    cancel_event.clear()
                     timer = threading.Thread(target=coffee_timer, args=(strToNum,))
                     timer.start()
                     status = State.TIMER
@@ -79,6 +82,8 @@ def slack_command():
                 
         if status == State.TIMER:
              if gathering_text == 'cancel timer':
+                cancel_event.set()
+                timer_thread.join()
                 status = State.ON
                 return "timer is cancelled"
              else:
@@ -110,11 +115,15 @@ def coffee_timer(minutes = 5 ):
         #The following code creates a realistic countdown timer using divod functions and specific format layouts
         seconds = minutes * 60
         while seconds:
+            if cancel_event.is_set():
+                print("timer cancelled")
+                return 
             mins,secs = divmod(seconds, 60)
             timeformat = f'\r{mins:02d}:{secs:02d}'
             print(timeformat, end='', flush=True)
             time.sleep(1)
             seconds -= 1
+        print("timer complete")
 
     #Checks if the pixel display is returning a ping, if it doesnt, the status of the device if offline
 def check_if_online():
