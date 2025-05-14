@@ -16,9 +16,21 @@ class State():
      ON = 1
      OFF = 2
      SLEEPING = 3
+     TIMER = 4
 
 
 status = State.ON
+
+
+
+"""
+if there is a running thread of timer
+check if the user enters the correct keywoard to cancel the timer
+
+if they dont, let the timer continue
+
+if they do, cancel the timer
+"""
 #Endpoint to which the slack events are received which are cnnected via a challenge request response
 @app.route('/slack/events', methods=['POST'])
 def slack_events():    
@@ -34,6 +46,7 @@ def slack_events():
 @app.route('/slack/command', methods=['POST'])
 def slack_command():
     global status
+
     print("inside slack command")
     #Gathers the text from the form, i.e {text: 'smiley_emoji'}
     gathering_text = request.form.get('text', '')
@@ -46,18 +59,32 @@ def slack_command():
     #Slpits the text for feature use as some feature require multiple inputs
     split_input = gathering_text.split()
 
-    #If statement that checks if the input it larger than 1 word long, if it is, it splits the words up into two words
+    #If statement that checks if the input it larger than 1 word long, if it is, it splits the words up into two words       
     if len(split_input) > 1:
         emoji_input = split_input[0]
         emoji_input1 = split_input[1]
 
         #Checks if the first word is coffee, if it is check the second word for a digit for timer input
-        if emoji_input == 'coffee'or ':coffee:':
-            strToNum = int(emoji_input1)
-            if emoji_input1.isdigit():
-                #Seperates times into seperate thread so other features can execute without disrupting the timer
-                threading.Thread(target=coffee_timer, args=(strToNum,)).start()
-                return f"{user}: set timer for {strToNum} minutes", 200
+        if status != State.TIMER:
+            if emoji_input == 'coffee'or ':coffee:':
+                strToNum = int(emoji_input1)
+                if emoji_input1.isdigit():
+                    #Chnages status to timer to indiciate that the state of the system is running a timer
+                    status = State.TIMER
+                    #Seperates time into thread execution
+                    timer = threading.Thread(target=coffee_timer, args=(strToNum,))
+                    timer.start()
+                    status = State.TIMER
+                    return f"{user}: set timer for {strToNum} minutes, to cancel the timer type (cancel timer) ", 200
+                
+        if status == State.TIMER:
+             if gathering_text == 'cancel timer':
+                status = State.ON
+                return "timer is cancelled"
+             else:
+                return "type (cancel timer) to cancel timer"
+ 
+            
 
     #Checks if the text equals to the sleep command, if it is, it sleeps the workspace and deactivate any further prompts to the pixel display
     #Until the key word of 'Awaken' is triggered for continuation of commands
@@ -113,7 +140,7 @@ def check_if_online():
                         #Producing alert to the slack workspace
                         send.slack_alert("Network is now connected to the pixel display")
                         break
-     
+
 #Test for connectivity of route
 @app.route('/', methods=['GET'])
 def test():
