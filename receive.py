@@ -4,9 +4,9 @@ import threading
 import time
 import send
 import subprocess
-from datetime import datetime 
+from datetime import datetime
+import json
 
-# Initialising the Flask application
 app = Flask(__name__)
 
 SLACK_SIGNING_SECRET = os.environ.get("SLACK_SIGNING_SECRET")
@@ -50,20 +50,20 @@ def coffee_timer(minutes=5):
         time.sleep(1)
         seconds -= 1
 
-# New: Pretty print with timestamp
+# Pretty print with timestamp
 def print_log(message):
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}")
 
 def check_if_online():
     while True:
-        res = subprocess.call(["ping", "192.168.68.110", "-c1", "-W2", "-q"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  
+        res = subprocess.call(["ping", "192.168.68.110", "-c1", "-W2", "-q"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if res == 0:
             time.sleep(10)
         else:
             send.slack_alert("Network connection has been lost to the pixel display")
             while True:
                 time.sleep(10)
-                res = subprocess.call(["ping", "192.168.68.110", "-c1", "-W2", "-q"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  
+                res = subprocess.call(["ping", "192.168.68.110", "-c1", "-W2", "-q"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 if res == 0:
                     send.slack_alert("Network is now connected to the pixel display")
                     break
@@ -71,27 +71,43 @@ def check_if_online():
 def check_slack_connection():
     while True:
         try:
-            response = subprocess.run(["ping", "slack.com", "-c", "1", "-W", "2", "-q"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) 
+            response = subprocess.run(["ping", "slack.com", "-c", "1", "-W", "2", "-q"],
+                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             if response.returncode == 0:
                 print_log("Slack connected")
-                time.sleep(10)
             else:
                 print_log("Slack disconnected")
-                # send.send_emoji("x") 
-                time.sleep(10)
+                send.send_emoji("x")
+            time.sleep(10)
         except Exception as e:
             print_log(f"Error checking Slack: {e}")
-            # send.send_emoji("x")
+            send.send_emoji("x")
             time.sleep(10)
 
+# Log emoji usage for trend tracking
+def log_emoji(emoji):
+    log_entry = {
+        "emoji": emoji,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    try:
+        with open("emoji_log.json", "r") as f:
+            data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        data = []
+
+    data.append(log_entry)
+
+    with open("emoji_log.json", "w") as f:
+        json.dump(data, f, indent=2)
+
+# Basic test endpoint
 @app.route('/', methods=['GET'])
 def test():
     return Response('It works!'), 200
 
+# Start server
 if __name__ == "__main__":
-    # send.default_welcome_sign()
-
     threading.Thread(target=check_if_online, daemon=True).start()
     threading.Thread(target=check_slack_connection, daemon=True).start()
-
-    app.run(debug=True, port=8888)
+    app.run(host="0.0.0.0", port=8888, debug=True)
