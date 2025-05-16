@@ -23,15 +23,6 @@ status = State.ON
 timer_thread = None
 cancel_event = threading.Event()
 
-
-"""
-if there is a running thread of timer
-check if the user enters the correct keywoard to cancel the timer
-
-if they dont, let the timer continue
-
-if they do, cancel the timer
-"""
 #Endpoint to which the slack events are received which are cnnected via a challenge request response
 @app.route('/slack/events', methods=['POST'])
 def slack_events():    
