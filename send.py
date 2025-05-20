@@ -1,8 +1,12 @@
 import requests
 import os
+import send
 
 raspPi = "http://192.168.68.110:5000"
 
+def set_raspPi(pi):
+    raspPi = pi
+    
 def send_emoji(emoji):
     payload = {"emoji": emoji}
     response = requests.post(raspPi, json=payload)

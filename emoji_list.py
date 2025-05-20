@@ -1,5 +1,41 @@
-import emoji
-emoji_convertedImage = emoji.emojize()
+from PIL import Image
+import paramiko
+import os
+
+
+emoji_mapping = {":slightly_smiling_face:" :  "C:\\Users\\Chris\\Desktop\\ICT_Project\\ICT_Project-1\\smiley face for Slack Icon.jpg"}
+
+def resizing_emoji(emoji):
+    img = Image.open(emoji_mapping.get(emoji))
+    print(img.size)
+    img.resize(30, 30)
+    print(img.size)
+
+def send_to_pie(emoji):
+    if emoji not in emoji_mapping:
+        return
+    
+    local_file = emoji_mapping(emoji)
+    filename = os.path.basename(local_file)
+    remote_path = f"/home/pi/emojis/{filename}"
+    
+    host = "http://192.168.68.110:5000"
+    username = "pi"
+    password = "password"
+
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(host, username=username, password=password)
+
+    sftp = ssh.open_sftp()
+    sftp.put(local_file, remote_path)
+    sftp.close()
+    ssh.close()
+    
+
+
+    
+
 emojiList = [
 "+1",
 "-1",

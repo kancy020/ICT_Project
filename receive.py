@@ -4,6 +4,7 @@ import threading
 import time
 import send
 import subprocess
+import emoji_list
 
 #Initialising the Flask application
 app = Flask(__name__)
@@ -48,6 +49,8 @@ def slack_command():
     #prints log for error checking
     print(f"gathering_text: '{gathering_text}'") 
 
+    emoji_list.resizing_emoji(gathering_text)
+
     #Slpits the text for feature use as some feature require multiple inputs
     split_input = gathering_text.split()
 
@@ -59,22 +62,17 @@ def slack_command():
         #Checks if the first word is coffee, if it is check the second word for a digit for timer input
         if status != State.TIMER:
             if emoji_input == 'coffee'or ':coffee:':
-                strToNum = int(emoji_input1)
+                coffeeTime = int(emoji_input1)
                 if emoji_input1.isdigit():
-                    #Chnages status to timer to indiciate that the state of the system is running a timer
+                    #Changes status to timer to indiciate that the state of the system is running a timer
                     status = State.TIMER
                     #Seperates time into thread execution
-                    global timer_thread
-                    cancel_event.clear()
-                    timer = threading.Thread(target=coffee_timer, args=(strToNum,))
-                    timer.start()
+                    coffee_timer(coffeeTime)
                     status = State.TIMER
-                    return f"{user}: set timer for {strToNum} minutes, to cancel the timer type (cancel timer) ", 200
+                    return f"{user}: set timer for {coffeeTime} minutes, to cancel the timer type (cancel timer) ", 200
                 
         if status == State.TIMER:
              if gathering_text == 'cancel timer':
-                cancel_event.set()
-                timer_thread.join()
                 status = State.ON
                 return "timer is cancelled"
              else:
@@ -106,9 +104,6 @@ def coffee_timer(minutes = 5 ):
         #The following code creates a realistic countdown timer using divod functions and specific format layouts
         seconds = minutes * 60
         while seconds:
-            if cancel_event.is_set():
-                print("timer cancelled")
-                return 
             mins,secs = divmod(seconds, 60)
             timeformat = f'\r{mins:02d}:{secs:02d}'
             print(timeformat, end='', flush=True)
@@ -148,7 +143,4 @@ def test():
 
 #Main execution of program
 if __name__ == "__main__":
-    #send the welcome sign on startup
-    #send.default_welcome_sign()
-    #threading.Thread(target=check_if_online, daemon=True).start()
     app.run(debug=True, port=8888) 
