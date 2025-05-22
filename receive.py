@@ -7,6 +7,7 @@ import send
 import subprocess
 import emoji_list
 import python3_idotmatrix_client_main 
+import start_up_file
 
 #Initialising the Flask application
 app = Flask(__name__)
@@ -23,9 +24,9 @@ class State():
 
 
 status = State.ON
-timer_thread = None
-cancel_event = threading.Event()
 
+commands = start_up_file
+commands.start_up_pixel_display()
 #Endpoint to which the slack events are received which are cnnected via a challenge request response
 @app.route('/slack/events', methods=['POST'])
 def slack_events():    
@@ -41,7 +42,7 @@ def slack_events():
 @app.route('/slack/command', methods=['POST'])
 def slack_command():
     global status
-
+    
     print("inside slack command")
     #Gathers the text from the form, i.e {text: 'smiley_emoji'}
     gathering_text = request.form.get('text', '')
@@ -50,8 +51,7 @@ def slack_command():
 
     #prints log for error checking
     print(f"gathering_text: '{gathering_text}'") 
-
-    send_image_to_display(gathering_text)
+    commands.send_image_to_display(gathering_text)
 
     #Slpits the text for feature use as some feature require multiple inputs
     split_input = gathering_text.split()
@@ -138,20 +138,7 @@ def check_if_online():
                         send.slack_alert("Network is now connected to the pixel display")
                         break
 
-def send_image_to_display(emoji):
-    img_path = emoji_list.get_path(emoji)    
-
-    set_image_command = ["./run_in_venv.sh",
-                            "--address",
-                            "--image", "true",
-                            "--set-image", img_path
-                            ]
-    
-    try:
-        subprocess.run(set_image_command, check=True)
-        print(f"Image {img_path} sent to display successfully.")
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to send image: {e}")
+#def send_to_png_folder():
 
 #Test for connectivity of route
 @app.route('/', methods=['GET'])
