@@ -5,6 +5,7 @@ import time
 import send
 import subprocess
 import emoji_list
+from python3_idotmatrix_client_main import gui
 
 #Initialising the Flask application
 app = Flask(__name__)
@@ -135,6 +136,12 @@ def check_if_online():
                         #Producing alert to the slack workspace
                         send.slack_alert("Network is now connected to the pixel display")
                         break
+
+def get_image(emoji):
+    if(emoji not in emoji_list.emoji_mapping.keys()):
+        return
+    else:
+        subprocess.run([])
 
 #Test for connectivity of route
 @app.route('/', methods=['GET'])
