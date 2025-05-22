@@ -5,6 +5,15 @@ import os
 
 emoji_mapping = {":slightly_smiling_face:" :  "C:\\Users\\Chris\\Desktop\\ICT_Project\\ICT_Project-1\\smiley face for Slack Icon.jpg"}
 
+
+def get_path(emoji):
+    if(emoji in emoji_mapping.keys()):
+        img_path = emoji_mapping.get(emoji)
+        return img_path
+    else:
+        return
+        
+
 emojiList = [
 "+1",
 "-1",

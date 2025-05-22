@@ -2,10 +2,11 @@ import os
 from flask import Flask, request, Response, jsonify
 import threading
 import time
+import python3_idotmatrix_client_main.gui
 import send
 import subprocess
 import emoji_list
-from python3_idotmatrix_client_main import gui
+import python3_idotmatrix_client_main 
 
 #Initialising the Flask application
 app = Flask(__name__)
@@ -50,7 +51,7 @@ def slack_command():
     #prints log for error checking
     print(f"gathering_text: '{gathering_text}'") 
 
-    emoji_list.resizing_emoji(gathering_text)
+    send_image_to_display(gathering_text)
 
     #Slpits the text for feature use as some feature require multiple inputs
     split_input = gathering_text.split()
@@ -137,11 +138,20 @@ def check_if_online():
                         send.slack_alert("Network is now connected to the pixel display")
                         break
 
-def get_image(emoji):
-    if(emoji not in emoji_list.emoji_mapping.keys()):
-        return
-    else:
-        subprocess.run([])
+def send_image_to_display(emoji):
+    img_path = emoji_list.get_path(emoji)    
+
+    set_image_command = ["./run_in_venv.sh",
+                            "--address",
+                            "--image", "true",
+                            "--set-image", img_path
+                            ]
+    
+    try:
+        subprocess.run(set_image_command, check=True)
+        print(f"Image {img_path} sent to display successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to send image: {e}")
 
 #Test for connectivity of route
 @app.route('/', methods=['GET'])
