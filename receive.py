@@ -3,8 +3,8 @@ from flask import Flask, request, Response, jsonify
 import time
 import send
 import subprocess
-import emoji_list
-import start_up_file
+import Zhuanhuan
+
 
 #Initialising the Flask application
 app = Flask(__name__)
@@ -41,6 +41,9 @@ def slack_command():
     print("inside slack command")
     #Gathers the text from the form, i.e {text: 'smiley_emoji'}
     gathering_text = request.form.get('text', '')
+
+    Zhuanhuan.batch_process_single_file(gathering_text)
+
     #Gathers the name of the user who sent the text, i.e {user_id: chrisk}
     user =  request.form.get('user_name')
 
@@ -49,6 +52,8 @@ def slack_command():
 
     #Slpits the text for feature use as some feature require multiple inputs
     split_input = gathering_text.split()
+
+    
 
     #If statement that checks if the input it larger than 1 word long, if it is, it splits the words up into two words       
     if len(split_input) > 1:
