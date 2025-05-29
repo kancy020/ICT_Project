@@ -1,9 +1,11 @@
 import os
 from flask import Flask, request, Response, jsonify
+import requests
 import time
 import send
 import subprocess
 import Zhuanhuan
+from slack_sdk import WebClient
 
 
 #Initialising the Flask application
@@ -21,6 +23,39 @@ class State():
 
 
 status = State.ON
+
+from slack_sdk import WebClient
+
+SLACK_BOT_TOKEN = "xoxb-8596203319506-8627176813076-z9YvrjZdD61DOy4OvJfOJEmu"
+client = WebClient(token=SLACK_BOT_TOKEN)
+
+def get_emoji_url(emoji_name):
+    name_e =  emoji_name.replace(":", "")
+
+    matched_file = None
+    for file in os.listdir("input"):
+        name, _ = os.path.splitext(file)
+        if name == name_e:
+            matched_file = file
+            print("image is already in file")
+            Zhuanhuan.batch_process_single_file(name_e)
+            break
+        else:
+            emoji_list = client.emoji_list()
+            emoji_dict = emoji_list.get("emoji", {})
+            url = emoji_dict.get(name_e)
+
+            if url:
+                if url.startswith("alias:"):
+                    alias = url.split("alias:")[1]
+                    return get_emoji_url(alias)
+                img_data = requests.get(url).content
+                with open(f"input/{name_e}.png", "wb") as f:
+                    f.write(img_data)
+                Zhuanhuan.batch_process(name_e)
+                return url
+            return None
+
 
 #Endpoint to which the slack events are received which are cnnected via a challenge request response
 @app.route('/slack/events', methods=['POST'])
@@ -42,7 +77,8 @@ def slack_command():
     #Gathers the text from the form, i.e {text: 'smiley_emoji'}
     gathering_text = request.form.get('text', '')
 
-    Zhuanhuan.batch_process_single_file(gathering_text)
+    #Zhuanhuan.batch_process_single_file(gathering_text)
+    get_emoji_url(gathering_text)
 
     #Gathers the name of the user who sent the text, i.e {user_id: chrisk}
     user =  request.form.get('user_name')
