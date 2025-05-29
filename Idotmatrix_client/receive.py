@@ -1,12 +1,9 @@
 import os
 from flask import Flask, request, Response, jsonify
-import threading
 import time
-import python3_idotmatrix_client_main.gui
 import send
 import subprocess
 import emoji_list
-import python3_idotmatrix_client_main 
 import start_up_file
 
 #Initialising the Flask application
@@ -25,8 +22,6 @@ class State():
 
 status = State.ON
 
-commands = start_up_file
-commands.start_up_pixel_display()
 #Endpoint to which the slack events are received which are cnnected via a challenge request response
 @app.route('/slack/events', methods=['POST'])
 def slack_events():    
@@ -51,7 +46,6 @@ def slack_command():
 
     #prints log for error checking
     print(f"gathering_text: '{gathering_text}'") 
-    commands.send_image_to_display(gathering_text)
 
     #Slpits the text for feature use as some feature require multiple inputs
     split_input = gathering_text.split()
@@ -138,8 +132,6 @@ def check_if_online():
                         send.slack_alert("Network is now connected to the pixel display")
                         break
 
-#def send_to_png_folder():
-
 #Test for connectivity of route
 @app.route('/', methods=['GET'])
 def test():
@@ -147,4 +139,6 @@ def test():
 
 #Main execution of program
 if __name__ == "__main__":
+    start_up_file.start_up_pixel_display()
+    #start_up_file.find_mac_address()
     app.run(debug=True, port=8888) 
