@@ -1,6 +1,7 @@
 import os
 from flask import Flask, request, Response, jsonify
 import requests
+import emoji
 import time
 import send
 import subprocess
@@ -24,41 +25,65 @@ class State():
 status = State.ON
 
 # Slack bot token which establishes connection to the slack api's event subscription, needed for obtaining images for custom emojis
-SLACK_BOT_TOKEN = "xoxb-8596203319506-8627176813076-04TOw7Ndh4A1xRPB6vkz4Pwr"
+SLACK_BOT_TOKEN = "xoxb-8596203319506-8627176813076-vbcfGcCw05tGqzIAWleyJ5Kj"
 client = WebClient(token=SLACK_BOT_TOKEN)
 
 # Obtains the image from the custom emoji slash command send it to the input file and then when process continues to the output images
 def get_emoji_url(emoji_name):
-    name_e =  emoji_name.replace(":", "")
-
-    matched_file = None
-
-    #checks if the file already exists in the input images
-    for file in os.listdir("input"):
-        name, _ = os.path.splitext(file)
-        if name == name_e:
-            matched_file = file
-            print("image is already in file")
-            Zhuanhuan.batch_process_single_file(name_e)
-            break
-
-        # if it does not, then gather the image, put it in input images then process the image
-        else:
-            emoji_list = client.emoji_list()
-            emoji_dict = emoji_list.get("emoji", {})
-            url = emoji_dict.get(name_e)
-
-            if url:
-                if url.startswith("alias:"):
-                    alias = url.split("alias:")[1]
-                    return get_emoji_url(alias)
-                img_data = requests.get(url).content
+    name_e = emoji_name.replace(":", "")
+    
+    # Ensure input directory exists
+    os.makedirs("input", exist_ok=True)
+    os.makedirs("output", exist_ok=True)
+    
+    # First try standard emoji
+    try:
+        emoji_char = emoji.emojize(emoji_name, language="alias")
+        if emoji_char != emoji_name:
+            url = get_standard_emoji_url(emoji_char)
+            try:
+                response = requests.get(url, timeout=10)
+                response.raise_for_status()  # Raises exception for bad status codes
+                
                 with open(f"input/{name_e}.png", "wb") as f:
-                    f.write(img_data)
-                    f.close()
+                    f.write(response.content)
+                
                 Zhuanhuan.batch_process_single_file(name_e)
                 return url
-            return None
+            except requests.RequestException as e:
+                print(f"Failed to download standard emoji: {e}")
+    except Exception as e:
+        print(f"Standard emoji processing failed: {e}")
+    
+    # Try custom emoji from Slack
+    try:
+        emoji_list = client.emoji_list()
+        emoji_dict = emoji_list.get("emoji", {})
+        url = emoji_dict.get(name_e)
+        
+        if url:
+            # Handle aliases
+            if url.startswith("alias:"):
+                alias = url.split("alias:")[1]
+                return get_emoji_url(f":{alias}:")
+            
+            # Download custom emoji
+            try:
+                response = requests.get(url, timeout=10)
+                response.raise_for_status()
+                
+                with open(f"input/{name_e}.png", "wb") as f:
+                    f.write(response.content)
+                
+                Zhuanhuan.batch_process_single_file(name_e)
+                return url
+            except requests.RequestException as e:
+                print(f"Failed to download custom emoji: {e}")
+                
+    except Exception as e:
+        print(f"Custom emoji processing failed: {e}")
+    
+    return None
 
 
 #Endpoint to which the slack events are received which are cnnected via a challenge request response
@@ -176,6 +201,11 @@ def check_if_online():
                         #Producing alert to the slack workspace
                         send.slack_alert("Network is now connected to the pixel display")
                         break
+
+def get_standard_emoji_url(emoji_char):
+    codepoints = '-'.join(f"{ord(char):x}" for char in emoji_char)
+    return f"https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/{codepoints}.png"
+
 
 #Test for connectivity of route
 @app.route('/', methods=['GET'])
