@@ -7,7 +7,6 @@ import subprocess
 import Zhuanhuan
 from slack_sdk import WebClient
 
-
 #Initialising the Flask application
 app = Flask(__name__)
 
@@ -24,15 +23,17 @@ class State():
 
 status = State.ON
 
-from slack_sdk import WebClient
-
-SLACK_BOT_TOKEN = "xoxb-8596203319506-8627176813076-z9YvrjZdD61DOy4OvJfOJEmu"
+# Slack bot token which establishes connection to the slack api's event subscription, needed for obtaining images for custom emojis
+SLACK_BOT_TOKEN = "xoxb-8596203319506-8627176813076-04TOw7Ndh4A1xRPB6vkz4Pwr"
 client = WebClient(token=SLACK_BOT_TOKEN)
 
+# Obtains the image from the custom emoji slash command send it to the input file and then when process continues to the output images
 def get_emoji_url(emoji_name):
     name_e =  emoji_name.replace(":", "")
 
     matched_file = None
+
+    #checks if the file already exists in the input images
     for file in os.listdir("input"):
         name, _ = os.path.splitext(file)
         if name == name_e:
@@ -40,6 +41,8 @@ def get_emoji_url(emoji_name):
             print("image is already in file")
             Zhuanhuan.batch_process_single_file(name_e)
             break
+
+        # if it does not, then gather the image, put it in input images then process the image
         else:
             emoji_list = client.emoji_list()
             emoji_dict = emoji_list.get("emoji", {})
@@ -52,7 +55,8 @@ def get_emoji_url(emoji_name):
                 img_data = requests.get(url).content
                 with open(f"input/{name_e}.png", "wb") as f:
                     f.write(img_data)
-                Zhuanhuan.batch_process(name_e)
+                    f.close()
+                Zhuanhuan.batch_process_single_file(name_e)
                 return url
             return None
 
@@ -148,7 +152,7 @@ def coffee_timer(minutes = 5 ):
             seconds -= 1
         print("timer complete")
 
-    #Checks if the pixel display is returning a ping, if it doesnt, the status of the device if offline
+#Checks if the pixel display is returning a ping, if it doesnt, the status of the device if offline
 def check_if_online():
         #A loop to continuously check if the display is offline in the backgorund
         while True:

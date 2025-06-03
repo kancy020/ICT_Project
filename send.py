@@ -1,6 +1,5 @@
 import requests
 import os
-import send
     
 
 def slack_alert(message):
