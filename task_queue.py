@@ -1,6 +1,7 @@
 import time
 import threading
 from abc import ABC, abstractmethod
+from typing import List, Dict, Any
 
 class ITaskQueue(ABC):
     @abstractmethod
@@ -8,7 +9,7 @@ class ITaskQueue(ABC):
         pass
     
     @abstractmethod
-    def get_queue_status(self):
+    def get_queue_status(self) -> Dict[str, List[Dict[str, Any]]]:
         pass
 
 class TaskQueue(ITaskQueue):
@@ -16,8 +17,10 @@ class TaskQueue(ITaskQueue):
         self.device_manager = device_manager
         self.queue = []
         self.current_tasks = {}
+        self.completed_tasks = []
         self.lock = threading.Lock()
         self.task_id = 0
+        self.max_completed_tasks = 10
 
     def add_task(self, func, high_priority=False, **kwargs):
         with self.lock:
@@ -40,7 +43,8 @@ class TaskQueue(ITaskQueue):
         with self.lock:
             return {
                 "pending": [t.copy() for t in self.queue],
-                "running": [t.copy() for t in self.current_tasks.values()]
+                "running": [t.copy() for t in self.current_tasks.values()],
+                "completed": [t.copy() for t in self.completed_tasks]
             }
 
     def process_next_task(self):
@@ -70,6 +74,12 @@ class TaskQueue(ITaskQueue):
             if device_id in self.current_tasks:
                 task = self.current_tasks.pop(device_id)
                 task["status"] = "Completed"
+                task["end_time"] = time.time()
+                task["duration"] = task["end_time"] - task["start_time"]
+                self.completed_tasks.append(task)
+                if len(self.completed_tasks) > self.max_completed_tasks:
+                    self.completed_tasks.pop(0)
+                
                 for device in self.device_manager.get_devices():
                     if device["id"] == device_id:
                         device["status"] = "Idle"
