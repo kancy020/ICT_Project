@@ -3,7 +3,7 @@ import paramiko
 import os
 
 
-emoji_mapping = {":slightly_smiling_face:" :  "C:\\Users\\Chris\\Desktop\\ICT_Project\\ICT_Project-1\\smiley face for Slack Icon.jpg"}
+emoji_mapping = {":slightly_smiling_face:" :  "C:\\Users\\Chris\\Desktop\\ICT_Project\\ICT_Project-1\\map_images\\smiley face for Slack Icon.jpg"}
 
 
 def get_path(emoji):
