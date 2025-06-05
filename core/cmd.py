@@ -2,23 +2,24 @@
 from datetime import datetime
 import logging
 import os
-from PIL import Image
 import time
-from utils import utils
+import utils
+from idotmatrix import *
+
+
 
 # idotmatrix imports
-from idotmatrix import ConnectionManager
-from idotmatrix import Chronograph
-from idotmatrix import Clock
-from idotmatrix import Common
-from idotmatrix import Countdown
-from idotmatrix import Gif
-from idotmatrix import Image
-from idotmatrix import FullscreenColor
-from idotmatrix import MusicSync
-from idotmatrix import Scoreboard
-from idotmatrix import Graffiti
-from idotmatrix import Text
+# from idotmatrix import ConnectionManager
+# from idotmatrix import Chronograph
+# from idotmatrix import Clock  
+# from idotmatrix import Common
+# from idotmatrix import Countdown
+# from idotmatrix import Gif
+# from idotmatrix import Image
+# from idotmatrix import FullscreenColor
+# from idotmatrix import Scoreboard
+# from idotmatrix import Graffiti
+# from idotmatrix import Text
 
 
 class CMD:
