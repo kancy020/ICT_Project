@@ -155,3 +155,50 @@ def set_timer(minutes):
         print(f"Timer is set")
     except subprocess.CalledProcessError as e:
         print(f"Failed to send image: {e}")
+
+
+def turn_screen_off():
+    global mac_address
+    
+    set_image_command = f"python .\\app.py --address {mac_address} --screen off"
+                        
+    try:
+        result = subprocess.run(set_image_command, shell=True, check=True, capture_output=True, text=True)
+        print(f"screen is turned off")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to turn screen off {e}")
+
+def turn_screen_on():
+    global mac_address
+    
+    set_image_command = f"python .\\app.py --address {mac_address} --screen on"
+                        
+    try:
+        result = subprocess.run(set_image_command, shell=True, check=True, capture_output=True, text=True)
+        print(f"screen is turned on")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to turn screen on {e}")
+
+#Checks if the pixel display is returning a ping, if it doesnt, the status of the device if offline
+def check_if_connected():
+    global mac_address
+    
+    if(mac_address == None):
+        return "There is no connection to the pixel display!"
+    else :
+        return "Connected to the pixel display!"
+    
+def command_list():
+    help = "Command list -- type '/emoji -h' to show list " \
+    ""
+    "The following is all prefixed with the '/emoji' slash command"\
+    "-------------------------------------------------------------"
+    "send emoji = 😄 or 'emoji name'" \
+    "set timer (5 represents the timer in minutes) = 'timer 5' or enter *coffee emoji* 5 (use actual emoji)"\
+    "cancel timer = 'cancel timer'"\
+    "turn screen off = 'sleep' or *enter sleeping face emoji* (use actual emoji)*"\
+    "turn screen on = 'awake'"\
+    "check status = 'status'"
+
+    return help
+                        

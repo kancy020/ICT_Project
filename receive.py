@@ -2,8 +2,6 @@ import os
 from flask import Flask, request, Response, jsonify
 import requests
 import emoji
-import time
-import send
 import subprocess
 import Zhuanhuan
 from slack_sdk import WebClient
@@ -22,7 +20,6 @@ SLACK_SIGNING_SECRET = os.environ.get("SLACK_SIGNING_SECRET")
 class State():
      ON = 1
      OFF = 2
-     SLEEPING = 3
      TIMER = 4
 
 
@@ -32,11 +29,11 @@ mac_address = start_up_file.mac_address
 
 
 # Slack bot token which establishes connection to the slack api's event subscription, needed for obtaining images for custom emojis
-SLACK_BOT_TOKEN = " -- app slack auth bot token here -- "
+SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
 client = WebClient(token=SLACK_BOT_TOKEN)
 
 
-# Obtains the image from the custom emoji slash command send it to the input file and then when process continues to the output images
+# Obtains the image from the custom emoji aswell as client emojis through the slash command, sends it to the input file and then process continues to the output images
 def get_emoji_url(emoji_name):
     name_e = emoji_name.replace(":", "")
     
@@ -46,18 +43,20 @@ def get_emoji_url(emoji_name):
     
     # Finding the emoji using get_emoji_url function that adds emoji to input folder
     try:
+        # Grabs emoji alies name
         emoji_char = emoji.emojize(emoji_name, language="alias")
+        # If it find the name search for thepng using the get_standard_emoji call
         if emoji_char != emoji_name:
             url = get_standard_emoji_url(emoji_char)
             try:
                 response = requests.get(url, timeout=10)
                 response.raise_for_status()  # Raises exception for bad status codes
                 
-                # Adding file to input which adds it as a png
+                # Adding newly found emoji file to input folder which adds it as a png
                 with open(f"input/{name_e}.png", "wb") as file:
                     file.write(response.content)
                 
-                # Image is processed as a 16 x 16 pixel png which gets added to output folder
+                # processed the file with the new name as a 16 x 16 pixel png which gets added to output folder
                 Zhuanhuan.batch_process_single_file(name_e)
                 return url
             except requests.RequestException as e:
@@ -68,6 +67,7 @@ def get_emoji_url(emoji_name):
     
     # For customer emojis retrieves it from the slack client
     try:
+        # Finds custom emoji
         emoji_list = client.emoji_list()
         emoji_dict = emoji_list.get("emoji", {})
         url = emoji_dict.get(name_e)
@@ -110,34 +110,43 @@ def slack_events():
 #This POST method houses the main features of the program through the slack command intergration
 @app.route('/slack/command', methods=['POST'])
 def slack_command():
+    # Gloabl status to hold changing status events
     global status
+    print(f"Current status: {status}")
     
     print("inside slack command")
-    #Gathers the text from the form, i.e {text: ':smiley_emoji:'}
-    gathering_text = request.form.get('text', '')
+    #Gathers the text from the host server form, i.e {text: ':smiley_emoji:'}
+    text = request.form.get('text', '')
 
-    #Gathers the name of the user who sent the text, i.e {user_id: chrisk}
+    # Lowers all text
+    gathering_text = text.lower()
+    print(gathering_text)
+
+
+    # Gathers the name of the user who sent the text, i.e {user_id: chrisk}
     user =  request.form.get('user_name')
 
-    #prints log for error checking
+    # Prints log for error checking
     print(f"gathering_text: '{gathering_text}'") 
 
     # Default return to the slack workspace
     response_to_slack = f"{user} sent {gathering_text} to the pixel display"
 
     # Background processing as wait times for executions would timeout the slack workspace
-    def background_processing():
-        try:
-                get_emoji_url(gathering_text)
-                start_up_file.send_image_to_display(gathering_text)
-                print(f"Successfully processed {gathering_text}")
-        except Exception as e:
-                print(f"Error processing {gathering_text}: {e}")
-        
-    # Start background thread for image displaying
-    thread = threading.Thread(target=background_processing)
-    thread.daemon = True
-    thread.start()
+    if(status != State.OFF):
+        # Only processes if screen isn't off
+        def background_processing():
+            try:
+                    get_emoji_url(gathering_text)
+                    start_up_file.send_image_to_display(gathering_text)
+                    print(f"Successfully processed {gathering_text}")
+            except Exception as e:
+                    print(f"Error processing {gathering_text}: {e}")
+            
+        # Start background thread for image displaying
+        thread = threading.Thread(target=background_processing)
+        thread.daemon = True
+        thread.start()
 
     # For commands that are multi input, are splits and viewed individually i.e 'coffee 5' or 'cancel timer'
     split_input = gathering_text.split()
@@ -146,7 +155,7 @@ def slack_command():
         emoji_input = split_input[0]
         emoji_input1 = split_input[1]
 
-        if status != State.TIMER and (emoji_input == 'coffee' or emoji_input ==':coffee:'):
+        if status != State.TIMER and (emoji_input == 'timer' or emoji_input ==':coffee:') and status != State.OFF:
 
             # Casting second input as int for time countdown
             coffeeTime = int(emoji_input1)
@@ -170,7 +179,7 @@ def slack_command():
                 thread.daemon = True
                 thread.start()
 
-                return f"{user}: set timer for {coffeeTime} minutes, to cancel the timer type (cancel timer)", 200
+                return f"{user}: set timer for {coffeeTime} minutes, to cancel the timer type (/emoji cancel timer)", 200
             
             # Response if input is not valid for coffee timer
             else:
@@ -199,47 +208,73 @@ def slack_command():
             return f"{user}: Timer cancelled", 200
             
     #Checks if the text equals to the sleep command, if true, then it sleeps the workspace and deactivates any further prompts to the pixel display
-    #Until the key word of 'Awaken' is triggered for continuation of commands
-    if gathering_text == 'sleep' or gathering_text == ':sleeping_face:':
-        status = State.OFF
+    if (gathering_text == 'sleep' or gathering_text == ':sleeping_face:') and status != State.OFF:
+        def sleep_pixel_display():
+            global status 
+            try:
+                print("screen off successfully")
+                start_up_file.turn_screen_off()
+                status = State.OFF
+            except subprocess.CalledProcessError as e:
+                print(f"screen of failed: {e}")
+
+        # Runs screen off thread
+        off_thread = threading.Thread(target=sleep_pixel_display)
+        off_thread.daemon = True
+        off_thread.start()
+
         return "The pixel display is sleeping, to reactivate enter: awaken"
 
+    # Only if the screen is off can this function call trigger
     if status == State.OFF:
-        if gathering_text == 'awaken':
-            status = State.ON
-            return "Pixel display is now active"
-        return "The pixel display is sleeping, to reactivate enter: awaken"
+        # Turns the screen back on and reinstates further image processing to the pixel display
+        if gathering_text == 'awake':
+            def awaken_pixel_display():
+                global status 
+                try:
+                    start_up_file.turn_screen_on()
+                    print("screen on succesful")
+                    status = State.ON
+                except subprocess.CalledProcessError as e:
+                    print(f"screen of failed: {e}")
+        
+            # Runs screen on thread
+            on_thread = threading.Thread(target=awaken_pixel_display)
+            on_thread.daemon = True
+            on_thread.start()
+
+            return f"{user}: Pixel display is now awake!", 200
     
+    # status update check for if the pixel display is connected
+    if gathering_text == 'status':
+        def check_status():
+            try:
+                start_up_file.check_if_connected()
+                print("status checked")
+            except subprocess.CalledProcessError as e:
+                print(f"screen of failed: {e}")
+        
+        check_thread = threading.Thread(target=check_status)
+        check_thread.daemon= True
+        check_thread.start()
+
+    # prompts a help screen with guide feature commands
+    if gathering_text == '-h':
+        def prompt_command_list():
+            try:
+                start_up_file.command_list()
+                print("command list sent")
+            except subprocess.CalledProcessError as e:
+                print(f"send list failed: {e}")
+            
+        list_thread = threading.Thread(target=prompt_command_list)
+        list_thread.daemon= True
+        list_thread.start()
+
     return response_to_slack
 
  
-#Checks if the pixel display is returning a ping, if it doesnt, the status of the device if offline
-def check_if_online():
-        #A loop to continuously check if the display is offline in the backgorund
-        while True:
-            #Using subprocessing to the device and awaits for reponse
-            res = subprocess.call(["ping", "192.168.68.110", "-c1", "-W2", "-q"])
-            #Handling the execution based on result 
-            if(res == 0):
-                #Sleeps the thread for 10 seconds before checking if offline again
-                time.sleep(10)
-            else:
-                #Returns a reponse to slack if it is disconnected
-                send.slack_alert("Network connection has been lost to the pixel display")
-
-                #Retry to see if the pixel display has reconnected
-                while True:
-                    #Sleep timer 
-                    time.sleep(10)
-                    #Using subprocessing to the device and awaits for reponse
-                    res = subprocess.call(["ping", "192.168.68.110", "-c1", "-W2", "-q"])
-                    if(res == 0):
-                        #Producing alert to the slack workspace
-                        send.slack_alert("Network is now connected to the pixel display")
-                        break
-
-
-# Uses emoji name to find corresponding emoji png file name in the twemoji assets, returns this to the get_emoji_url method
+# Uses emoji name codepoint to find corresponding emoji png file name in the twemoji assets, returns this to the get_emoji_url method
 def get_standard_emoji_url(emoji_char):
     codepoints = '-'.join(f"{ord(char):x}" for char in emoji_char)
     return f"https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/{codepoints}.png"
@@ -252,6 +287,7 @@ def test():
 
 #Main execution of program
 if __name__ == "__main__":
+    # These files trigger upon entry into the flask app for the setup of the IDotMatrix controller sync
     start_up_file.start_up()
     start_up_file.find_mac_address()
     start_up_file.set_mac_address()
