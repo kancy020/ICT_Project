@@ -122,7 +122,6 @@ def slack_command():
     gathering_text = text.lower()
     print(gathering_text)
 
-
     # Gathers the name of the user who sent the text, i.e {user_id: chrisk}
     user =  request.form.get('user_name')
 
@@ -155,7 +154,7 @@ def slack_command():
         emoji_input = split_input[0]
         emoji_input1 = split_input[1]
 
-        if status != State.TIMER and (emoji_input == 'timer' or emoji_input == ':coffee:') and status != State.OFF:
+        if status != State.TIMER and (emoji_input == 'timer') and status != State.OFF:
 
             # Casting second input as int for time countdown
             coffeeTime = int(emoji_input1)
@@ -169,6 +168,7 @@ def slack_command():
                         
                         # Run the function from start_up_file
                         start_up_file.set_timer(emoji_input1)
+                        status = State.TIMER
                     except Exception as e:
                         print(f"Error setting timer: {e}")
                         status = State.ON 
@@ -204,10 +204,10 @@ def slack_command():
             cancel_thread.start()
             
             # Return immediate response to Slack
-            return f"{user}: Timer cancelled", 200
+            return f"{user}: timer cancelled", 200
             
     #Checks if the text equals to the sleep command, if true, then it sleeps the workspace and deactivates any further prompts to the pixel display
-    if (gathering_text == 'sleep' or gathering_text == ':sleeping_face:') and status != State.OFF:
+    if (gathering_text == 'sleep') and status != State.OFF:
         def sleep_pixel_display():
             global status 
             try:
@@ -222,7 +222,7 @@ def slack_command():
         off_thread.daemon = True
         off_thread.start()
 
-        return "The pixel display is sleeping, to reactivate enter: awaken"
+        return "the pixel display is sleeping, to reactivate enter: /emoji awake"
 
     # Only if the screen is off can this function call trigger
     if status == State.OFF:
@@ -242,25 +242,18 @@ def slack_command():
             on_thread.daemon = True
             on_thread.start()
 
-            return f"{user}: Pixel display is now awake!", 200
+            return f"{user}: pixel display is now awake!", 200
     
     # status update check for if the pixel display is connected
     if gathering_text == 'status':
-        def check_status():
-            try:
-                start_up_file.check_if_connected()
-                print("status checked")
-            except subprocess.CalledProcessError as e:
-                print(f"screen of failed: {e}")
-        
-        check_thread = threading.Thread(target=check_status)
-        check_thread.daemon= True
-        check_thread.start()
-
+        status_update = start_up_file.check_if_connected()
+        return status_update
+       
     # prompts a help screen with guide feature commands
     if gathering_text == '-h'or gathering_text == '-help':
-        return start_up_file.command_list()
-
+        help_list = start_up_file.command_list() 
+        return help_list
+       
     return response_to_slack
 
  

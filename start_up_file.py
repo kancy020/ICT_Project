@@ -197,9 +197,9 @@ def command_list():
            "-------------------------------------------------------------\n" \
            "\n" \
            "send emoji = 😄 or enter *name of emoji*\n" \
-           "set timer _(5 represents the timer in minutes)_ = *'timer 5'* or enter *coffee emoji* 5 _(use actual emoji)_\n" \
+           "set timer _(5 represents the timer in minutes)_ = *'timer 5'*\n" \
            "cancel timer = *'cancel timer'*\n" \
-           "turn screen off = *'sleep'* or enter *sleeping face emoji* _(use actual emoji)_\n" \
+           "turn screen off = *'sleep'*\n" \
            "turn screen on = *'awake'*\n" \
            "check status = *'status'*\n" \
            "help commands = *'-h'* or *'-help'*"
