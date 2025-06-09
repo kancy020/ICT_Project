@@ -20,7 +20,7 @@ SLACK_SIGNING_SECRET = os.environ.get("SLACK_SIGNING_SECRET")
 class State():
      ON = 1
      OFF = 2
-     TIMER = 4
+     TIMER = 3
 
 
 # Initializing the status as ON for app entry
@@ -130,7 +130,7 @@ def slack_command():
     print(f"gathering_text: '{gathering_text}'") 
 
     # Default return to the slack workspace
-    response_to_slack = f"{user} sent {gathering_text} to the pixel display"
+    response_to_slack = f"{user} sent {gathering_text} to the pixel display - enter '-help' or '-h' for command list"
 
     # Background processing as wait times for executions would timeout the slack workspace
     if(status != State.OFF):
@@ -155,7 +155,7 @@ def slack_command():
         emoji_input = split_input[0]
         emoji_input1 = split_input[1]
 
-        if status != State.TIMER and (emoji_input == 'timer' or emoji_input ==':coffee:') and status != State.OFF:
+        if status != State.TIMER and (emoji_input == 'timer' or emoji_input == ':coffee:') and status != State.OFF:
 
             # Casting second input as int for time countdown
             coffeeTime = int(emoji_input1)
@@ -166,8 +166,7 @@ def slack_command():
                     global status
                     try:
                         print(f"Timer set for {coffeeTime} minutes")
-                        status = State.TIMER
-
+                        
                         # Run the function from start_up_file
                         start_up_file.set_timer(emoji_input1)
                     except Exception as e:
@@ -259,17 +258,8 @@ def slack_command():
         check_thread.start()
 
     # prompts a help screen with guide feature commands
-    if gathering_text == '-h':
-        def prompt_command_list():
-            try:
-                start_up_file.command_list()
-                print("command list sent")
-            except subprocess.CalledProcessError as e:
-                print(f"send list failed: {e}")
-            
-        list_thread = threading.Thread(target=prompt_command_list)
-        list_thread.daemon= True
-        list_thread.start()
+    if gathering_text == '-h'or gathering_text == '-help':
+        return start_up_file.command_list()
 
     return response_to_slack
 
