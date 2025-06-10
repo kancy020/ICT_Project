@@ -12,10 +12,6 @@ import threading
 app = Flask(__name__)
 
 
-#Getting slack signing secret from enviorment
-SLACK_SIGNING_SECRET = os.environ.get("SLACK_SIGNING_SECRET")
-
-
 #class to hold enum values of system state
 class State():
      ON = 1
@@ -45,7 +41,7 @@ def get_emoji_url(emoji_name):
     try:
         # Grabs emoji alies name
         emoji_char = emoji.emojize(emoji_name, language="alias")
-        # If it find the name search for thepng using the get_standard_emoji call
+        # If it find the name search for the png using the get_standard_emoji call
         if emoji_char != emoji_name:
             url = get_standard_emoji_url(emoji_char)
             try:
@@ -262,11 +258,6 @@ def get_standard_emoji_url(emoji_char):
     codepoints = '-'.join(f"{ord(char):x}" for char in emoji_char)
     return f"https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/{codepoints}.png"
 
-
-#Test for connectivity of route
-@app.route('/', methods=['GET'])
-def test():
-    return Response('It works!'), 200
 
 #Main execution of program
 if __name__ == "__main__":
