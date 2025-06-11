@@ -40,6 +40,8 @@ class TaskQueue(ITaskQueue):
             return self.task_id
 
     def get_queue_status(self):
+        print(f"🟠 当前队列状态: 待处理 {len(self.queue)} | 运行中 {len(self.current_tasks)} | 已完成 {len(self.completed_tasks)}")
+
         with self.lock:
             return {
                 "pending": [t.copy() for t in self.queue],
@@ -84,3 +86,19 @@ class TaskQueue(ITaskQueue):
                     if device["id"] == device_id:
                         device["status"] = "Idle"
                         break
+    
+    def remove_task(self, task_id):
+        with self.lock:
+            # 从待处理队列中移除
+            for i, task in enumerate(self.queue):
+                if task["id"] == task_id:
+                    self.queue.pop(i)
+                    return True
+            
+            # 从运行中任务中移除
+            for device_id, task in list(self.current_tasks.items()):
+                if task["id"] == task_id:
+                    self.complete_task(device_id)  # 正常结束任务
+                    return True
+                    
+            return False

@@ -1,0 +1,18 @@
+[
+  {
+    "id": 0,
+    "name": "RaspberryPixel",
+    "status": "Idle",
+    "disabled": false,
+    "type": "pixel_screen",
+    "ip": ""
+  },
+  {
+    "id": 1,
+    "name": "RaspberryPixel2",
+    "status": "Idle",
+    "disabled": false,
+    "type": "pixel_screen",
+    "ip": ""
+  }
+]

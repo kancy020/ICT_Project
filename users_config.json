@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "name": "Tao",
+    "permission": "Active",
+    "role": "admin"
+  },
+  {
+    "id": 2,
+    "name": "Chris",
+    "permission": "Active",
+    "role": "user"
+  },
+  {
+    "id": 3,
+    "name": "Steven",
+    "permission": "Inactive",
+    "role": "user"
+  }
+]
