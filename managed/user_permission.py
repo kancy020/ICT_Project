@@ -1,8 +1,6 @@
+import time
 import threading
 from abc import ABC, abstractmethod
-import json
-import os
-import time
 
 class IUserPermissionManager(ABC):
     @abstractmethod
@@ -18,34 +16,14 @@ class IUserPermissionManager(ABC):
         pass
 
 class UserPermissionManager(IUserPermissionManager):
-    def __init__(self, config_file="users_config.json"):
-        self.lock = threading.Lock()
-        self.config_file = config_file
-        self._load_users()  # 新增动态加载
-
-    def _load_users(self):
-        """从配置文件加载用户（新增方法）"""
-        default_users = [
-            {"id": 1, "name": "Admin", "permission": "Active", "role": "admin"},
-            {"id": 2, "name": "Operator", "permission": "Active", "role": "operator"}
+    def __init__(self):
+        self.users = [
+            {"id": 1, "name": "User A", "permission": "Active"},
+            {"id": 2, "name": "User B", "permission": "Active"},
+            {"id": 3, "name": "User C", "permission": "Inactive"}
         ]
-        
-        try:
-            if os.path.exists(self.config_file):
-                with open(self.config_file) as f:
-                    self.users = json.load(f)
-            else:
-                self.users = default_users
-        except Exception:
-            self.users = default_users
+        self.lock = threading.Lock()
 
-    def save_users(self):
-        """保存用户配置（新增方法）"""
-        with self.lock:
-            with open(self.config_file, 'w') as f:
-                json.dump(self.users, f, indent=2)
-
-    # 修改原有方法支持动态保存
     def get_users(self):
         with self.lock:
             return [u.copy() for u in self.users]
@@ -55,13 +33,17 @@ class UserPermissionManager(IUserPermissionManager):
             for user in self.users:
                 if user["id"] == user_id:
                     user["permission"] = "Active" if user["permission"] == "Inactive" else "Inactive"
-                    self.save_users()  # 状态变更后保存
                     return True
         return False
 
     def fetch_permissions(self):
         print("Fetching permissions...")
         time.sleep(1)
-        self._load_users()  # 改为重新加载配置
+        new_users = [
+            {"id": 1, "name": "User A", "permission": "Active"},
+            {"id": 2, "name": "User B", "permission": "Inactive"},
+            {"id": 3, "name": "User C", "permission": "Inactive"}
+        ]
+        with self.lock:
+            self.users = new_users
         return True
-
