@@ -10,8 +10,13 @@ from task_functions import (
     turn_on,
     sync_time
 )
+# python imports
+import argparse
+import asyncio
+import logging
 
-app = Flask(__name__)
+# idotmatrix imports
+from core.cmd import CMD
 
 HOME_DIR = os.path.expanduser("~")
 LOG_PATH = os.path.join(HOME_DIR, "ICT_Project", "emoji_history.json")
@@ -91,3 +96,45 @@ def receive_data():
 if __name__ == '__main__':
     print(" Flask server starting on http://0.0.0.0:5000 ...")
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
+
+def log():
+    # set basic logging
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s :: %(levelname)s :: %(name)s :: %(message)s",
+        datefmt="%d.%m.%Y %H:%M:%S",
+        handlers=[logging.StreamHandler()],
+    )
+    # set log level of asyncio
+    logging.getLogger("asyncio").setLevel(logging.WARNING)
+    # set log level of bleak
+    logging.getLogger("bleak").setLevel(logging.WARNING)
+
+
+def main():
+    cmd = CMD()
+    parser = argparse.ArgumentParser(
+        description="control all your 16x16 or 32x32 pixel displays"
+    )
+    # global argument
+    parser.add_argument(
+        "--address",
+        action="store",
+        help="the bluetooth address of the device",
+    )
+    # add cmd arguments
+    cmd.add_arguments(parser)
+    # parse arguments
+    args = parser.parse_args()
+    # run command
+    asyncio.run(cmd.run(args))
+
+
+if __name__ == "__main__":
+    log()
+    log = logging.getLogger("idotmatrix")
+    log.info("initialize app")
+    try:
+        main()
+    except KeyboardInterrupt:
+        log.info("Caught keyboard interrupt. Stopping app.")

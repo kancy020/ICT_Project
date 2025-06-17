@@ -1,5 +1,19 @@
-import emoji
-emoji_convertedImage = emoji.emojize()
+from PIL import Image
+import paramiko
+import os
+
+
+emoji_mapping = {":slightly_smiling_face:" :  "C:\\Users\\Chris\\Desktop\\ICT_Project\\ICT_Project-1\\map_images\\smiley face for Slack Icon.jpg"}
+
+
+def get_path(emoji):
+    if(emoji in emoji_mapping.keys()):
+        img_path = emoji_mapping.get(emoji)
+        return img_path
+    else:
+        return
+        
+
 emojiList = [
 "+1",
 "-1",
