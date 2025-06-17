@@ -3,8 +3,10 @@ import os
 
 print("send.py started...")
 
-raspPi = "http://192.168.68.110:5000"
+# Raspberry Pi server endpoint
+raspPi = "http://192.168.68.110:8888"
 
+# Send an emoji name to the pixel display
 def send_emoji(emoji):
     payload = {"emoji": emoji}
     try:
@@ -14,6 +16,7 @@ def send_emoji(emoji):
     except Exception as e:
         print("Error sending emoji:", e)
 
+# Send a default welcome text to the pixel display
 def default_welcome_sign():
     payload = {"text": "Welcome"}
     try:
@@ -23,6 +26,7 @@ def default_welcome_sign():
     except Exception as e:
         print("Error sending welcome:", e)
 
+# Send an alert message to Slack using webhook
 def slack_alert(message):
     payload = {
         "blocks": [
@@ -40,11 +44,9 @@ def slack_alert(message):
     except Exception as e:
         print("Error sending Slack alert:", e)
 
+# If run directly, send a test emoji and welcome message
 if __name__ == "__main__":
     send_emoji("smile")
     default_welcome_sign()
-
-
-
 
 
