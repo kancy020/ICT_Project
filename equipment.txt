@@ -1,0 +1,9 @@
+Pillow
+PyQt5
+bleak
+emoji
+flask
+numpy
+requests
+slack_sdk
+scipy

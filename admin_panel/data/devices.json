@@ -1,0 +1,17 @@
+{
+    "users": {
+      "Ye Tao": {
+        "username": "Ye Tao",
+        "first_seen": "2025-06-01T10:15:00.000000",
+        "last_active": "2025-06-20T14:30:45.123456",
+        "command_count": 12,
+        "is_blocked": false,
+        "permissions": ["basic"],
+        "commands_history": [
+          { "timestamp": "2025-06-20T14:00:00", "command": "emoji 😊" },
+          { "timestamp": "2025-06-20T14:05:10", "command": "timer 5" }
+        ]
+      }
+    }
+
+}
