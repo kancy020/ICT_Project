@@ -224,27 +224,3 @@ class TaskQueueManager:
                 continue
             except Exception as e:
                 print(f"[TaskQueueManager] Worker thread error: {e}")
-
-def _execute_task(self, task: Dict[str, Any]):
-        """Execute individual task"""
-        task_id = task['id']
-        print(f"[TaskQueueManager] Executing task: {task_id}")
-        try:
-            task['status'] = TaskStatus.EXECUTING.value
-            task['updated_at'] = datetime.now().isoformat()
-            self.executing_tasks[task_id] = task
-
-            # Simulate processing time
-            time.sleep(2)
-
-            task['status'] = TaskStatus.COMPLETED.value
-            task['updated_at'] = datetime.now().isoformat()
-            self.completed_tasks[task_id] = task
-            del self.executing_tasks[task_id]
-
-            self._save_tasks()
-            print(f"[TaskQueueManager] Task completed: {task_id}")
-        except Exception as e:
-            print(f"[TaskQueueManager] Task failed: {e}")
-            task['status'] = TaskStatus.FAILED.value
-            self._save_tasks()

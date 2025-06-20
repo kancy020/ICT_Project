@@ -311,15 +311,3 @@ if __name__ == "__main__":
         pass
     finally:
         dm.stop_monitoring()
-
-def toggle_power(self, device_id: str) -> bool:
-        """Toggle power state of a device"""
-        device = self.get_device(device_id)
-        if not device:
-            print(f"Device {device_id} not found")
-            return False
-
-        if device.get("enabled", True):
-            return self.send_command_to_device(device_id, "turn_off")
-        else:
-            return self.send_command_to_device(device_id, "turn_on")
