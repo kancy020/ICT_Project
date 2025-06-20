@@ -9,7 +9,7 @@ import webbrowser
 
 class AdminManager:
     """
-    管理员类 - 负责接收接口类数据并调度其他类
+    Administrator class - Responsible for receiving interface data and dispatching to other classes
     """
     
     def __init__(self, port: int = 9999):
@@ -19,38 +19,38 @@ class AdminManager:
         self.user_manager = None
         self.device_manager = None
         
-        # Web应用
+        # Web application
         self.app = Flask(__name__, template_folder='templates', static_folder='static')
         self.app.secret_key = 'admin_secret_key_2024'
         
-        # 执行队列
+        # Execution queue
         self.execution_queue = []
         self.execution_lock = threading.Lock()
         
-        # 初始化路由
+        # Initialize routes
         self._setup_routes()
         
-        print(f"[AdminManager] 管理员类初始化完成，端口: {port}")
+        print(f"[AdminManager] Administrator initialized, port: {port}")
     
     def set_components(self, interface_manager, task_queue, user_manager, device_manager):
-        """设置组件引用"""
+        """Set component references"""
         self.interface_manager = interface_manager
         self.task_queue = task_queue
         self.user_manager = user_manager
         self.device_manager = device_manager
         
-        # 反向绑定
+        # Reverse binding
         if interface_manager:
             interface_manager.set_admin_manager(self)
         
-        print(f"[AdminManager] 组件绑定完成")
+        print(f"[AdminManager] Components bound successfully")
     
     def handle_network_execution(self, execution_data: Dict[str, Any]):
-        """处理联网模式的执行请求"""
+        """Handle execution requests in network mode"""
         try:
-            print(f"[AdminManager] 处理联网执行: {execution_data['execution_id']}")
+            print(f"[AdminManager] Handling network execution: {execution_data['execution_id']}")
             
-            # 添加到执行队列
+            # Add to execution queue
             with self.execution_lock:
                 self.execution_queue.append({
                     'id': execution_data['execution_id'],
@@ -60,29 +60,29 @@ class AdminManager:
                     'timestamp': datetime.now().isoformat()
                 })
             
-            # 这里可以添加实际的处理逻辑
-            # 例如：添加到任务队列、检查用户权限、设备状态等
+            # Actual processing logic can be added here
+            # For example: add to task queue, check user permissions, device status, etc.
             
             result = self._process_execution_data(execution_data)
             
-            # 处理完成后恢复执行
+            # Resume execution after processing
             if self.interface_manager:
                 self.interface_manager.resume_execution()
             
             return result
             
         except Exception as e:
-            print(f"[AdminManager] 处理联网执行失败: {e}")
+            print(f"[AdminManager] Failed to handle network execution: {e}")
             if self.interface_manager:
                 self.interface_manager.resume_execution()
             return None
     
     def handle_remote_execution(self, execution_data: Dict[str, Any]):
-        """处理远程调度模式的执行请求"""
+        """Handle execution requests in remote dispatch mode"""
         try:
-            print(f"[AdminManager] 处理远程执行: {execution_data['execution_id']}")
+            print(f"[AdminManager] Handling remote execution: {execution_data['execution_id']}")
             
-            # 添加到执行队列
+            # Add to execution queue
             with self.execution_lock:
                 self.execution_queue.append({
                     'id': execution_data['execution_id'],
@@ -92,41 +92,41 @@ class AdminManager:
                     'timestamp': datetime.now().isoformat()
                 })
             
-            # 远程模式处理逻辑
+            # Remote mode processing logic
             self._process_remote_execution(execution_data)
             
-            # 远程模式不恢复原执行路径
-            print(f"[AdminManager] 远程执行已转移")
+            # Remote mode doesn't return to original execution path
+            print(f"[AdminManager] Remote execution transferred")
             
         except Exception as e:
-            print(f"[AdminManager] 处理远程执行失败: {e}")
+            print(f"[AdminManager] Failed to handle remote execution: {e}")
     
     def _process_execution_data(self, execution_data: Dict[str, Any]):
-        """处理执行数据"""
+        """Process execution data"""
         try:
             caller_info = execution_data.get('caller_info', {})
             func_name = caller_info.get('function_name', 'unknown')
             
-            # 根据函数名称决定处理方式
+            # Determine processing method based on function name
             if func_name in ['show_emoji', 'send_image_to_display']:
-                # 处理显示相关的命令
+                # Handle display-related commands
                 return self._handle_display_command(execution_data)
             elif func_name in ['set_timer']:
-                # 处理定时器命令
+                # Handle timer commands
                 return self._handle_timer_command(execution_data)
             else:
-                # 通用处理
+                # Generic handling
                 return self._handle_generic_command(execution_data)
                 
         except Exception as e:
-            print(f"[AdminManager] 处理执行数据失败: {e}")
+            print(f"[AdminManager] Failed to process execution data: {e}")
             return None
     
     def _handle_display_command(self, execution_data: Dict[str, Any]):
-        """处理显示命令"""
+        """Handle display commands"""
         try:
             if self.task_queue:
-                # 添加到任务队列
+                # Add to task queue
                 task_data = {
                     'type': 'display',
                     'data': execution_data,
@@ -138,11 +138,11 @@ class AdminManager:
             return {'status': 'processed', 'message': 'Display command handled'}
             
         except Exception as e:
-            print(f"[AdminManager] 处理显示命令失败: {e}")
+            print(f"[AdminManager] Failed to handle display command: {e}")
             return None
     
     def _handle_timer_command(self, execution_data: Dict[str, Any]):
-        """处理定时器命令"""
+        """Handle timer commands"""
         try:
             if self.task_queue:
                 task_data = {
@@ -156,23 +156,22 @@ class AdminManager:
             return {'status': 'processed', 'message': 'Timer command handled'}
             
         except Exception as e:
-            print(f"[AdminManager] 处理定时器命令失败: {e}")
+            print(f"[AdminManager] Failed to handle timer command: {e}")
             return None
     
     def _handle_generic_command(self, execution_data: Dict[str, Any]):
-        """处理通用命令"""
+        """Handle generic commands"""
         try:
             return {'status': 'processed', 'message': 'Generic command handled'}
             
         except Exception as e:
-            print(f"[AdminManager] 处理通用命令失败: {e}")
+            print(f"[AdminManager] Failed to handle generic command: {e}")
             return None
     
     def _process_remote_execution(self, execution_data: Dict[str, Any]):
-        """处理远程执行（转移给其他程序）"""
+        """Handle remote execution (transfer to other program)"""
         try:
-            # 这里可以实现转移给其他程序的逻辑
-            # 例如：发送到远程服务器、保存到共享文件等
+            # Logic to transfer to other program-Not implemented, switched to localized implementation
             
             remote_file = "remote_execution_queue.json"
             try:
@@ -190,16 +189,16 @@ class AdminManager:
                 with open(remote_file, 'w', encoding='utf-8') as f:
                     json.dump(remote_queue, f, ensure_ascii=False, indent=2)
                 
-                print(f"[AdminManager] 远程执行数据已保存到: {remote_file}")
+                print(f"[AdminManager] Remote execution data saved to: {remote_file}")
                 
             except Exception as e:
-                print(f"[AdminManager] 保存远程执行数据失败: {e}")
+                print(f"[AdminManager] Failed to save remote execution data: {e}")
                 
         except Exception as e:
-            print(f"[AdminManager] 处理远程执行失败: {e}")
+            print(f"[AdminManager] Failed to process remote execution: {e}")
     
     def switch_interface_mode(self, mode: str):
-        """切换接口模式"""
+        """Switch interface mode"""
         try:
             if self.interface_manager:
                 from interface_manager import InterfaceMode
@@ -208,11 +207,11 @@ class AdminManager:
                 return True
             return False
         except Exception as e:
-            print(f"[AdminManager] 切换接口模式失败: {e}")
+            print(f"[AdminManager] Failed to switch interface mode: {e}")
             return False
     
     def get_system_status(self):
-        """获取系统状态"""
+        """Get system status"""
         try:
             status = {
                 'timestamp': datetime.now().isoformat(),
@@ -224,11 +223,11 @@ class AdminManager:
             }
             return status
         except Exception as e:
-            print(f"[AdminManager] 获取系统状态失败: {e}")
+            print(f"[AdminManager] Failed to get system status: {e}")
             return {}
     
     def _setup_routes(self):
-        """设置Web路由"""
+        """Setup web routes"""
         
         @self.app.route('/')
         def index():
@@ -276,46 +275,46 @@ class AdminManager:
                 return jsonify({'error': str(e)})
     
     def start_web_server(self, debug: bool = False):
-        """启动Web管理界面"""
+        """Start web management interface"""
         try:
-            print(f"[AdminManager] 启动Web服务器: http://localhost:{self.port}")
+            print(f"[AdminManager] Starting web server: http://localhost:{self.port}")
             
-            # 在新线程中启动服务器
+            # Start server in new thread
             def run_server():
                 self.app.run(host='0.0.0.0', port=self.port, debug=debug, use_reloader=False)
             
             server_thread = threading.Thread(target=run_server, daemon=True)
             server_thread.start()
             
-            # 等待服务器启动
+            # Wait for server to start
             time.sleep(2)
             
-            # 自动打开浏览器
+            # Automatically open browser
             try:
                 webbrowser.open(f'http://localhost:{self.port}')
             except Exception as e:
-                print(f"[AdminManager] 无法自动打开浏览器: {e}")
+                print(f"[AdminManager] Failed to open browser automatically: {e}")
             
-            print(f"[AdminManager] Web服务器已启动")
+            print(f"[AdminManager] Web server started")
             
         except Exception as e:
-            print(f"[AdminManager] 启动Web服务器失败: {e}")
+            print(f"[AdminManager] Failed to start web server: {e}")
     
     def stop_web_server(self):
-        """停止Web服务器"""
+        """Stop web server"""
         try:
-            # Flask的shutdown方法
-            print(f"[AdminManager] Web服务器停止请求已发送")
+            # Flask shutdown method
+            print(f"[AdminManager] Web server stop request sent")
         except Exception as e:
-            print(f"[AdminManager] 停止Web服务器失败: {e}")
+            print(f"[AdminManager] Failed to stop web server: {e}")
     
     def get_execution_queue(self):
-        """获取执行队列"""
+        """Get execution queue"""
         with self.execution_lock:
             return self.execution_queue.copy()
     
     def clear_execution_queue(self):
-        """清空执行队列"""
+        """Clear execution queue"""
         with self.execution_lock:
             self.execution_queue.clear()
-            print(f"[AdminManager] 执行队列已清空")
+            print(f"[AdminManager] Execution queue cleared")
