@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string, request, jsonify, redirect, url_for
+from flask import Flask, render_template_string, request, jsonify, redirect, url_for, Response
 import threading
 import time
 from datetime import datetime
@@ -6,100 +6,135 @@ from admin_panel.managers.device_manager import DeviceManager
 from admin_panel.managers.task_queue import TaskQueueManager, TaskPriority
 from admin_panel.managers.user_manager import UserManager
 from admin_panel.managers.admin_manager import AdminManager
-from admin_panel.managers.interface_manager import InterfaceManager
 
 app = Flask(__name__)
 
-# 初始化管理组件
-device_manager = DeviceManager()
-task_queue = TaskQueueManager()
-user_manager = UserManager()
-interface_manager = InterfaceManager()
-admin_manager = AdminManager()
-admin_manager.set_components(interface_manager, task_queue, user_manager, device_manager)
+# Initialize management components
+device_manager     = DeviceManager()
+task_queue_manager = TaskQueueManager()
+user_manager       = UserManager()
+admin_manager      = AdminManager(port=9999)
+# If using InterfaceManager:
+# from admin_panel.managers.interface_manager import interface_manager
+# admin_manager.set_components(interface_manager, task_queue_manager, user_manager, device_manager)
 
-# 页面模板
 TEMPLATE = '''
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>管理面板</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; margin:20px; }
-        h2 { margin-top: 30px; }
-        ul { list-style:none; padding:0; }
-        li { margin:8px 0; display:flex; align-items:center; }
-        .content { flex:1; }
-        .btn { margin-left: 10px; }
-        form { display:inline; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin Dashboard</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-    <h1>管理面板</h1>
-    <p>当前时间：{{ now }}</p>
+<body class="bg-light">
+  <nav class="navbar navbar-dark bg-primary">
+    <div class="container-fluid">
+      <span class="navbar-brand mb-0 h1">Admin Dashboard</span>
+      <span class="text-white">Current time: {{ now }}</span>
+    </div>
+  </nav>
+  <div class="container my-4">
+    <div class="row gy-4">
 
-    <h2>设备管理</h2>
-    <ul>
-    {% for id, dev in devices.items() %}
-        <li>
-            <div class="content"><strong>{{ dev['name'] }}</strong> ({{ dev['status'] }})</div>
-            <form action="/toggle_power/{{ id }}" method="post"><button class="btn">切换电源</button></form>
-            <form action="/api/device/disable/{{ id }}" method="post"><button class="btn">禁用</button></form>
-            <form action="/api/device/remove/{{ id }}" method="post"><button class="btn">删除</button></form>
-        </li>
-    {% endfor %}
-    </ul>
-
-    <h2>用户管理</h2>
-    <ul>
-    {% for username in users['users'] %}
-        <li>
-            <div class="content"><strong>{{ username }}</strong> (禁用: {{ username in users['blocked_users'] }})</div>
-            <form action="/api/user/block/{{ username }}" method="post"><button class="btn">禁用</button></form>
-            <form action="/api/user/unblock/{{ username }}" method="post"><button class="btn">解禁</button></form>
-        </li>
-    {% endfor %}
-    </ul>
-
-    <h2>创建任务</h2>
-    <form action="/api/task/create" method="post">
-        <label>类型：
-            <select name="type">
-                <option value="emoji">Emoji</option>
-                <option value="text">文本</option>
-                <option value="timer">定时器</option>
-            </select>
-        </label>
-        <label>内容：<input name="content" required placeholder="输入内容"></label>
-        <label>高优先：<input type="checkbox" name="high_priority"></label>
-        <button type="submit">添加任务</button>
-    </form>
-
-    <h2>任务队列</h2>
-    {% for title, lst in [('等待执行', queue_waiting), ('正在执行', queue_executing), ('历史记录', queue_completed)] %}
-        <h3>{{ title }} ({{ lst|length }})</h3>
-        <ul>
-        {% for task in lst %}
-            <li>
-                <div class="content">用户{{ task.user or 'admin' }}：
-                    {% if task.data.type=='emoji' %}
-                        <span style="font-size:1.5em;">{{ task.data.emoji }}</span>
-                    {% elif task.data.type=='text' %}
-                        <code>{{ task.data.text }}</code>
-                    {% elif task.data.type=='timer' %}
-                        <strong>{{ task.data.minutes }} 分钟</strong>
-                    {% else %}
-                        <em>{{ task.data.type }}</em>
-                    {% endif %}
-                </div>
-                {% if title!='正在执行' %}
-                <form action="/api/task/delete" method="post"><input type="hidden" name="task_id" value="{{ task.id }}"><button class="btn">删除</button></form>
-                {% endif %}
-            </li>
+      <!-- Device Management -->
+      <div class="col-12 col-md-6">
+        <h2 class="h4">Device Management</h2>
+        <ul class="list-group">
+        {% for id, dev in devices.items() %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div><strong>{{ dev['name'] }}</strong> — {{ dev['status'] }}</div>
+            <div class="btn-group btn-group-sm">
+              <a href="{{ url_for('toggle_device_power', device_id=id) }}" class="btn btn-outline-secondary">Toggle Power</a>
+              <a href="{{ url_for('api_disable_device', device_id=id) }}" class="btn btn-outline-warning">Disable</a>
+              <a href="{{ url_for('api_remove_device', device_id=id) }}" class="btn btn-outline-danger">Remove</a>
+            </div>
+          </li>
         {% endfor %}
         </ul>
-    {% endfor %}
+      </div>
+
+      <!-- User Management -->
+      <div class="col-12 col-md-6">
+        <h2 class="h4">User Management</h2>
+        <ul class="list-group">
+        {% for username in users['users'] %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div><strong>{{ username }}</strong>
+              <span class="badge bg-{{ 'danger' if username in users['blocked_users'] else 'success' }} ms-2">
+                {{ 'Blocked' if username in users['blocked_users'] else 'Active' }}
+              </span>
+            </div>
+            <div class="btn-group btn-group-sm">
+              <a href="{{ url_for('api_block_user', username=username) }}" class="btn btn-outline-warning">Block</a>
+              <a href="{{ url_for('api_unblock_user', username=username) }}" class="btn btn-outline-success">Unblock</a>
+            </div>
+          </li>
+        {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Create Task -->
+      <div class="col-12">
+        <h2 class="h4">Create Task</h2>
+        <form class="row g-2" action="{{ url_for('api_create_task') }}" method="post">
+          <div class="col-auto">
+            <select name="type" class="form-select form-select-sm" required>
+              <option value="">-- Select Task Type --</option>
+              <option value="emoji">Emoji</option>
+              <option value="text">Text</option>
+              <option value="timer">Timer</option>
+              <option value="control">Control</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <input name="content" class="form-control form-control-sm" placeholder="Enter content" required>
+          </div>
+          <div class="col-auto form-check">
+            <input type="checkbox" name="high_priority" class="form-check-input" id="hp">
+            <label class="form-check-label" for="hp">High Priority</label>
+          </div>
+          <div class="col-auto">
+            <button type="submit" class="btn btn-primary btn-sm">Add Task</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Task Queue -->
+      <div class="col-12">
+        <h2 class="h4">Task Queue</h2>
+        {% for title, lst in [('Pending', waiting), ('Running', executing), ('Completed', completed)] %}
+          <h5 class="mt-3">{{ title }} <small class="text-muted">({{ lst|length }})</small></h5>
+          <ul class="list-group">
+          {% for task in lst %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>{{ task['user'] or 'admin' }}:</strong>
+                {% if task['data']['type']=='emoji' %}
+                  <span class="fs-3">{{ task['data']['emoji'] }}</span>
+                {% elif task['data']['type']=='text' %}
+                  <code>{{ task['data']['text'] }}</code>
+                {% elif task['data']['type']=='timer' %}
+                  <strong>{{ task['data']['minutes'] }} min</strong>
+                {% else %}
+                  <em>{{ task['data']['type'] }}</em>
+                {% endif %}
+              </div>
+              {% if title!='Running' %}
+                <a href="{{ url_for('api_delete_task') }}?task_id={{task['id']}}" class="btn btn-outline-danger btn-sm">Delete</a>
+              {% endif %}
+            </li>
+          {% endfor %}
+          </ul>
+        {% endfor %}
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 '''
@@ -111,56 +146,56 @@ def dashboard():
         now=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         devices=device_manager.get_all_devices(),
         users=user_manager.get_all_users(),
-        queue_waiting=task_queue.get_waiting_tasks(),
-        queue_executing=task_queue.get_executing_tasks(),
-        queue_completed=task_queue.get_completed_tasks()
+        waiting=task_queue_manager.get_waiting_tasks(),
+        executing=task_queue_manager.get_executing_tasks(),
+        completed=task_queue_manager.get_completed_tasks()
     )
 
-@app.route('/toggle_power/<id>', methods=['POST'])
-def toggle_power(id):
-    device_manager.send_command_to_device(id, 'turn_on' if device_manager.get_device(id).get('status')!='online' else 'turn_off')
+@app.route('/toggle_power/<device_id>')
+def toggle_device_power(device_id):
+    success = device_manager.toggle_power(device_id)
     return redirect(url_for('dashboard'))
 
-@app.route('/api/device/disable/<id>', methods=['POST'])
-def disable_device(id):
-    device_manager.disable_device(id)
+@app.route('/api/device/disable/<device_id>')
+def api_disable_device(device_id):
+    device_manager.disable_device(device_id)
     return redirect(url_for('dashboard'))
 
-@app.route('/api/device/remove/<id>', methods=['POST'])
-def remove_device(id):
-    device_manager.remove_device(id)
+@app.route('/api/device/remove/<device_id>')
+def api_remove_device(device_id):
+    device_manager.remove_device(device_id)
     return redirect(url_for('dashboard'))
 
-@app.route('/api/user/block/<name>', methods=['POST'])
-def block_user(name):
-    user_manager.block_user(name)
+@app.route('/api/user/block/<username>')
+def api_block_user(username):
+    user_manager.block_user(username)
     return redirect(url_for('dashboard'))
 
-@app.route('/api/user/unblock/<name>', methods=['POST'])
-def unblock_user(name):
-    user_manager.unblock_user(name)
+@app.route('/api/user/unblock/<username>')
+def api_unblock_user(username):
+    user_manager.unblock_user(username)
     return redirect(url_for('dashboard'))
 
 @app.route('/api/task/create', methods=['POST'])
-def create_task():
-    t = request.form.get('type')
-    c = request.form.get('content')
+def api_create_task():
+    ttype = request.form['type']
+    content = request.form['content']
     high = 'high_priority' in request.form
-    if t=='emoji': data={'type':'emoji','emoji':c}
-    elif t=='text': data={'type':'text','text':c}
-    elif t=='timer':
-        try: data={'type':'timer','minutes':int(c)}
-        except: return '无效',400
-    else: return '未知类型',400
-    task_queue.add_task(data, user='admin', priority=TaskPriority.HIGH if high else TaskPriority.NORMAL)
+    data = {'type': ttype}
+    if ttype=='emoji': data['emoji']=content
+    if ttype=='text': data['text']=content
+    if ttype=='timer': data['minutes']=int(content)
+    # control type: extend as needed
+    priority = TaskPriority.HIGH if high else TaskPriority.NORMAL
+    task_queue_manager.add_task(data, user='admin', priority=priority)
     return redirect(url_for('dashboard'))
 
-@app.route('/api/task/delete', methods=['POST'])
-def delete_task():
-    tid = request.form.get('task_id')
-    if tid:
-        task_queue.remove_task(tid)
+@app.route('/api/task/delete')
+def api_delete_task():
+    tid = request.args.get('task_id')
+    task_queue_manager.remove_task(tid)
     return redirect(url_for('dashboard'))
 
-if __name__=='__main__':
-    app.run(host='0.0.0.0', port=9998, debug=True)
+if __name__ == '__main__':
+    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=9999, debug=False), daemon=True).start()
+    print("Admin Dashboard running on http://0.0.0.0:9999")
