@@ -7,9 +7,31 @@ import Zhuanhuan
 from slack_sdk import WebClient
 import start_up_file
 import threading
+import time
+
+# —— inject admin modules
+from admin_panel.managers.admin_manager      import AdminManager
+from admin_panel.managers.interface_manager  import interface_manager
+from admin_panel.managers.task_queue        import TaskQueueManager
+from admin_panel.managers.user_manager       import UserManager
+from admin_panel.managers.device_manager     import DeviceManager
+
 
 #Initialising the Flask application
 app = Flask(__name__)
+
+# —— inject admin & subsystems initialization
+device_mgr     = DeviceManager()
+taskq_mgr      = TaskQueueManager()
+user_mgr       = UserManager()
+admin_mgr      = AdminManager(port=9999)
+admin_mgr.set_components(
+    interface_manager,
+    taskq_mgr,
+    user_mgr,
+    device_mgr
+)
+
 
 
 #class to hold enum values of system state
@@ -106,6 +128,18 @@ def slack_events():
 #This POST method houses the main features of the program through the slack command intergration
 @app.route('/slack/command', methods=['POST'])
 def slack_command():
+    # —— inject admin command execution task
+    form = request.form.to_dict()
+    admin_mgr.handle_network_execution({
+        "execution_id": f"cmd_{int(time.time())}",
+        "caller_info": {
+            "function_name": "slack_command",
+            "user": form.get("user_name"),
+            "command_type": form.get("text", "").split()[0] if form.get("text") else "",
+            "raw_text": form.get("text")
+        },
+        "captured_variables": {"form": form}
+    })
     # Gloabl status to hold changing status events
     global status
     print(f"Current status: {status}")
