@@ -8,6 +8,7 @@ from typing import Dict, List, Optional
 
 class DeviceManager:
     """Device management class: manages device CRUD and status monitoring"""
+    """This class requires the administrator to manually enter device information"""
     
     def __init__(self, config_file: str = None):
         import os

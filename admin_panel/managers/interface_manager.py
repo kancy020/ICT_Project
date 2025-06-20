@@ -14,7 +14,7 @@ class InterfaceMode(Enum):
 
 class InterfaceManager:
     """
-    接口类 - 负责管理不同模式下的数据流控制
+    Manages data flow control in different modes
     """
     
     def __init__(self, config_file: str = None):
@@ -29,12 +29,12 @@ class InterfaceManager:
         self.lock = threading.Lock()
         self.execution_queue = []
         
-        # 加载配置
+        # Load configuration
         self._load_config()
-        print(f"[InterfaceManager] 初始化完成，当前模式: {self.mode.value}")
+        print(f"[InterfaceManager] Initialized, current mode: {self.mode.value}")
     
     def _load_config(self):
-        """加载配置文件"""
+        """Load configuration file"""
         try:
             if os.path.exists(self.config_file):
                 with open(self.config_file, 'r', encoding='utf-8') as f:
@@ -44,11 +44,11 @@ class InterfaceManager:
             else:
                 self._save_config()
         except Exception as e:
-            print(f"[InterfaceManager] 加载配置失败: {e}")
+            print(f"[InterfaceManager] Failed to load config: {e}")
             self.mode = InterfaceMode.LOCAL
     
     def _save_config(self):
-        """保存配置文件"""
+        """Save configuration file"""
         try:
             config = {
                 'mode': self.mode.value,
@@ -57,32 +57,32 @@ class InterfaceManager:
             with open(self.config_file, 'w', encoding='utf-8') as f:
                 json.dump(config, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"[InterfaceManager] 保存配置失败: {e}")
+            print(f"[InterfaceManager] Failed to save config: {e}")
     
     def set_admin_manager(self, admin_manager):
-        """设置管理员类引用"""
+        """Set reference to admin manager class"""
         self.admin_manager = admin_manager
-        print(f"[InterfaceManager] 管理员类已绑定")
+        print(f"[InterfaceManager] Admin manager bound")
     
     def switch_mode(self, mode: InterfaceMode):
-        """切换接口模式"""
+        """Switch interface mode"""
         with self.lock:
             old_mode = self.mode
             self.mode = mode
             self._save_config()
-            print(f"[InterfaceManager] 模式切换: {old_mode.value} -> {mode.value}")
+            print(f"[InterfaceManager] Mode switched: {old_mode.value} -> {mode.value}")
             
-            # 如果从阻断模式切换到本地模式，恢复执行
+            # If switching from blocked mode to local mode, resume execution
             if old_mode != InterfaceMode.LOCAL and mode == InterfaceMode.LOCAL:
                 self.blocked_execution = False
     
     def intercept_execution(self, func: Callable, *args, **kwargs):
         """
-        拦截函数执行
-        根据当前模式决定是否阻断执行
+        Intercept function execution
+        Decides whether to block execution based on current mode
         """
         with self.lock:
-            # 获取调用信息
+            # Get caller information
             caller_frame = inspect.currentframe().f_back
             caller_info = {
                 'function_name': func.__name__ if hasattr(func, '__name__') else str(func),
@@ -93,104 +93,104 @@ class InterfaceManager:
                 'caller_line': caller_frame.f_lineno
             }
             
-            print(f"[InterfaceManager] 拦截执行: {caller_info['function_name']}")
+            print(f"[InterfaceManager] Intercepted execution: {caller_info['function_name']}")
             
             if self.mode == InterfaceMode.LOCAL:
-                # 本地模式 - 不干涉数据，直接执行
+                # Local mode - don't interfere, execute directly
                 return self._execute_local(func, *args, **kwargs)
             
             elif self.mode == InterfaceMode.NETWORK:
-                # 联网模式 - 阻断执行，传输给管理员处理，等待返回
+                # Network mode - block execution, transfer to admin manager, wait for return
                 return self._execute_network(func, caller_info, *args, **kwargs)
             
             elif self.mode == InterfaceMode.REMOTE:
-                # 远程调度模式 - 阻断执行，传输给其他程序，不返回
+                # Remote dispatch mode - block execution, transfer to other program, no return
                 return self._execute_remote(func, caller_info, *args, **kwargs)
     
     def _execute_local(self, func: Callable, *args, **kwargs):
-        """本地模式执行"""
+        """Local mode execution"""
         try:
             result = func(*args, **kwargs)
-            print(f"[InterfaceManager] 本地执行完成: {func.__name__}")
+            print(f"[InterfaceManager] Local execution completed: {func.__name__}")
             return result
         except Exception as e:
-            print(f"[InterfaceManager] 本地执行失败: {e}")
+            print(f"[InterfaceManager] Local execution failed: {e}")
             return None
     
     def _execute_network(self, func: Callable, caller_info: Dict, *args, **kwargs):
-        """联网模式执行"""
+        """Network mode execution"""
         try:
-            # 阻断原本执行
+            # Block original execution
             self.blocked_execution = True
             
-            # 爬取内部变量和命令
+            # Capture internal variables and commands
             execution_data = {
                 'caller_info': caller_info,
                 'captured_variables': self._capture_variables(),
                 'execution_id': f"exec_{int(time.time())}"
             }
             
-            print(f"[InterfaceManager] 联网模式 - 数据已爬取，等待管理员处理")
+            #print(f"[InterfaceManager] Network mode - Data captured, waiting for admin processing")
             
-            # 传输给管理员类处理
+            # Transfer to admin manager for processing
             if self.admin_manager:
                 result = self.admin_manager.handle_network_execution(execution_data)
                 
-                # 等待管理员处理完成
+                # Wait for admin manager to finish processing
                 while self.blocked_execution:
                     time.sleep(0.1)
                 
-                print(f"[InterfaceManager] 联网模式 - 管理员处理完成，返回原执行路径")
+                #print(f"[InterfaceManager] Network mode - Admin processing completed, returning to original execution path")
                 return result
             else:
-                print(f"[InterfaceManager] 错误: 管理员类未绑定")
+                print(f"[InterfaceManager] Error: Admin manager not bound")
                 self.blocked_execution = False
                 return None
                 
         except Exception as e:
-            print(f"[InterfaceManager] 联网模式执行失败: {e}")
+            print(f"[InterfaceManager] Network mode execution failed: {e}")
             self.blocked_execution = False
             return None
     
     def _execute_remote(self, func: Callable, caller_info: Dict, *args, **kwargs):
-        """远程调度模式执行"""
+        """Remote dispatch mode execution"""
         try:
-            # 阻断原本执行，不返回
+            # Block original execution, no return
             self.blocked_execution = True
             
-            # 爬取内部变量和命令
+            # Capture internal variables and commands
             execution_data = {
                 'caller_info': caller_info,
                 'captured_variables': self._capture_variables(),
                 'execution_id': f"remote_{int(time.time())}"
             }
             
-            print(f"[InterfaceManager] 远程模式 - 数据已爬取，传输给其他程序")
+            #print(f"[InterfaceManager] Remote mode - Data captured, transferring to other program")
             
-            # 传输给管理员类处理（不等待返回）
+            # Transfer to admin manager for processing (no waiting for return)
             if self.admin_manager:
                 self.admin_manager.handle_remote_execution(execution_data)
                 
-            print(f"[InterfaceManager] 远程模式 - 已传输，不返回原执行路径")
+            #print(f"[InterfaceManager] Remote mode - Transferred")
             
-            # 远程模式不返回到原执行路径
+            # Remote mode doesn't return to original execution path
             return "REMOTE_EXECUTION_TRANSFERRED"
             
         except Exception as e:
-            print(f"[InterfaceManager] 远程模式执行失败: {e}")
+            print(f"[InterfaceManager] Remote mode execution failed: {e}")
             return None
     
     def _capture_variables(self):
-        """爬取内部变量"""
+        """Capture internal variables"""
         try:
-            # 获取调用栈中的变量
+            # Get variables from call stack
             frame = inspect.currentframe()
             variables = {}
             
-            # 遍历调用栈
+            # Traverse call stack
             while frame:
                 if frame.f_locals and frame.f_code.co_filename != __file__:
-                    # 过滤掉敏感变量和内置变量
+                    # Filter out sensitive variables and built-ins
                     filtered_vars = {
                         k: str(v) for k, v in frame.f_locals.items() 
                         if not k.startswith('_') and not callable(v)
@@ -202,21 +202,21 @@ class InterfaceManager:
             
             return variables
         except Exception as e:
-            print(f"[InterfaceManager] 变量爬取失败: {e}")
+            print(f"[InterfaceManager] Variable capture failed: {e}")
             return {}
     
     def resume_execution(self):
-        """恢复被阻断的执行"""
+        """Resume blocked execution"""
         with self.lock:
             self.blocked_execution = False
-            print(f"[InterfaceManager] 执行已恢复")
+            print(f"[InterfaceManager] Execution resumed")
     
     def get_current_mode(self):
-        """获取当前模式"""
+        """Get current mode"""
         return self.mode
     
     def get_status(self):
-        """获取接口状态"""
+        """Get interface status"""
         return {
             'mode': self.mode.value,
             'blocked': self.blocked_execution,
@@ -224,12 +224,12 @@ class InterfaceManager:
             'timestamp': datetime.now().isoformat()
         }
 
-# 全局接口管理器实例
+# Global interface manager instance
 interface_manager = InterfaceManager()
 
 def intercept(func):
     """
-    装饰器 - 用于自动拦截函数执行
+    Decorator - Automatically intercepts function execution
     """
     def wrapper(*args, **kwargs):
         return interface_manager.intercept_execution(func, *args, **kwargs)
