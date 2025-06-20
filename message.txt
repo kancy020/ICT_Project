@@ -120,7 +120,6 @@ def slack_command():
 
     # Gathers the name of the user who sent the text, i.e {user_id: chrisk}
     user =  request.form.get('user_name')
-    #_____________________________________________________________________________________________________________________________________________
 
     # Prints log for error checking
     print(f"gathering_text: '{gathering_text}'") 
