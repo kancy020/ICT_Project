@@ -13,9 +13,9 @@ class UserManager:
         import os
         data_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
         self.storage_file = storage_file or os.path.join(data_dir, "users.json")
-        self.users = {}  # 用户信息字典
-        self.blocked_users = set()  # 被禁用的用户集合
-        self.active_users = set()  # 活跃用户集合
+        self.users = {}  # 用户信息
+        self.blocked_users = set()  # 被禁用
+        self.active_users = set()  # 活跃
         
         # 线程锁
         self.lock = threading.Lock()
