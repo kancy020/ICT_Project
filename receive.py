@@ -1,5 +1,7 @@
 import os
 from flask import Flask, request, Response, jsonify
+from admin_panel.web.web_app import register_routes as register_panel_routes
+from admin_panel.managers.admin_manager import register_api_routes
 import requests
 import emoji
 import subprocess
@@ -13,8 +15,10 @@ import time
 
 #Initialising the Flask application
 app = Flask(__name__)
+register_panel_routes(app)
+register_api_routes(app)
 
-# 监控系统 - 替代admin_manager功能
+# Simple monitor class to log executions and system status
 class SimpleMonitor:
     def __init__(self):
         self.execution_log = []
@@ -40,7 +44,7 @@ class SimpleMonitor:
             'total_executions': len(self.execution_log)
         }
 
-# 创建监控实例
+#   Initialising the simple monitor to log executions and system status
 simple_monitor = SimpleMonitor()
 
 #class to hold enum values of system state
@@ -132,7 +136,7 @@ def slack_events():
 #This POST method houses the main features of the program through the slack command intergration
 @app.route('/slack/command', methods=['POST'])
 def slack_command():
-    # 记录执行信息
+    #   Logs the execution of the command with user and command details
     form = request.form.to_dict()
     execution_data = {
         'execution_id': f"cmd_{int(time.time())}",

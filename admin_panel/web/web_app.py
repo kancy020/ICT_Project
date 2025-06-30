@@ -1,4 +1,5 @@
-from flask import Flask, render_template_string, request, jsonify, redirect, url_for, Response
+from flask import Flask, Blueprint, render_template_string, request, jsonify, redirect, url_for, Response
+admin_bp = Blueprint('admin', __name__)
 import threading
 import time
 from datetime import datetime
@@ -139,7 +140,7 @@ TEMPLATE = '''
 </html>
 '''
 
-@app.route('/')
+@admin_bp.route('/')
 def dashboard():
     return render_template_string(
         TEMPLATE,
@@ -151,32 +152,32 @@ def dashboard():
         completed=task_queue_manager.get_completed_tasks()
     )
 
-@app.route('/toggle_power/<device_id>')
+@admin_bp.route('/toggle_power/<device_id>')
 def toggle_device_power(device_id):
     success = device_manager.toggle_power(device_id)
     return redirect(url_for('dashboard'))
 
-@app.route('/api/device/disable/<device_id>')
+@admin_bp.route('/api/device/disable/<device_id>')
 def api_disable_device(device_id):
     device_manager.disable_device(device_id)
     return redirect(url_for('dashboard'))
 
-@app.route('/api/device/remove/<device_id>')
+@admin_bp.route('/api/device/remove/<device_id>')
 def api_remove_device(device_id):
     device_manager.remove_device(device_id)
     return redirect(url_for('dashboard'))
 
-@app.route('/api/user/block/<username>')
+@admin_bp.route('/api/user/block/<username>')
 def api_block_user(username):
     user_manager.block_user(username)
     return redirect(url_for('dashboard'))
 
-@app.route('/api/user/unblock/<username>')
+@admin_bp.route('/api/user/unblock/<username>')
 def api_unblock_user(username):
     user_manager.unblock_user(username)
     return redirect(url_for('dashboard'))
 
-@app.route('/api/task/create', methods=['POST'])
+@admin_bp.route('/api/task/create', methods=['POST'])
 def api_create_task():
     ttype = request.form['type']
     content = request.form['content']
@@ -190,11 +191,18 @@ def api_create_task():
     task_queue_manager.add_task(data, user='admin', priority=priority)
     return redirect(url_for('dashboard'))
 
-@app.route('/api/task/delete')
+@admin_bp.route('/api/task/delete')
 def api_delete_task():
     tid = request.args.get('task_id')
     task_queue_manager.remove_task(tid)
     return redirect(url_for('dashboard'))
+
+
+def register_routes(app):
+    """Register all routes for the admin dashboard"""
+    if 'admin' not in app.blueprints:
+        app.register_blueprint(admin_bp)
+
 
 if __name__ == '__main__':
     threading.Thread(target=lambda: app.run(host='0.0.0.0', port=9999, debug=False), daemon=True).start()

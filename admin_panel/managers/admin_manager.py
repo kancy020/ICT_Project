@@ -1,3 +1,5 @@
+from admin_panel.common_state import interface_mgr, task_queue, user_mgr, device_mgr
+from common_state import interface_mgr, task_queue, user_mgr, device_mgr
 import json
 import os
 import threading
@@ -6,6 +8,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import webbrowser
+from admin_panel.managers.interface_manager import InterfaceMode
 
 class AdminManager:
     """
@@ -318,3 +321,29 @@ class AdminManager:
         with self.execution_lock:
             self.execution_queue.clear()
             print(f"[AdminManager] Execution queue cleared")
+
+def register_api_routes(app):
+        """Register API routes for AdminManager"""
+        from admin_panel.managers.admin_manager import AdminManager
+        from common_state import interface_mgr, task_queue, user_mgr, device_mgr
+
+        # Ensure AdminManager is initialized
+        am = AdminManager(port=None)
+        am.set_components(interface_mgr, task_queue, user_mgr, device_mgr)
+
+        # Register API routes from AdminManager
+        for rule in am.app.url_map.iter_rules():
+            if not rule.rule.startswith('/api'):
+                continue
+            ep = rule.endpoint
+            
+            if ep in app.view_functions or ep == 'static':
+                continue
+            view = am.app.view_functions[ep]
+            app.add_url_rule(
+                rule.rule,
+                endpoint=ep,
+                view_func=view,
+                methods=list(rule.methods)
+            )
+        print(f"[AdminManager] API routes registered: {len(list(am.app.url_map.iter_rules()))}")
