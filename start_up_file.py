@@ -4,6 +4,24 @@ import os
 # Global mac address for shared use
 mac_address = None
 
+# 系统状态跟踪
+system_status = {
+    'device_connected': False,
+    'last_operation': None,
+    'operation_count': 0
+}
+
+def update_status(operation, success=True):
+    global system_status
+    import time
+    system_status['last_operation'] = {
+        'operation': operation,
+        'timestamp': time.time(),
+        'success': success
+    }
+    system_status['operation_count'] += 1
+    system_status['device_connected'] = mac_address is not None
+
 # Start_up method triggers commands to start up the pixel display controller
 def start_up():
     build_path = ("build.ps1")
@@ -85,6 +103,7 @@ def set_mac_address():
     try:
         address_results = subprocess.run(address_sync, shell=True, check=True, capture_output=True, text=True)
         print("MAC address has been setup for pixel display")
+        update_status("set_mac_address", True)
             
     except subprocess.CalledProcessError as e:
         print(f"Failed to set MAC address: {e}")
@@ -140,6 +159,7 @@ def send_image_to_display(image):
         # Command ran for image setting to the pixel display, this command finishes the tranfer from back end to pixel display
         result = subprocess.run(set_image_command, shell=True, check=True, capture_output=True, text=True)
         print(f"Image {image} sent to display successfully.")
+        update_status("send_image", True)
     except subprocess.CalledProcessError as e:
         print(f"Failed to send image: {e}")
 
@@ -153,6 +173,7 @@ def set_timer(minutes):
     try:
         result = subprocess.run(set_image_command, shell=True, check=True, capture_output=True, text=True)
         print(f"Timer is set")
+        update_status("set_timer", True)
     except subprocess.CalledProcessError as e:
         print(f"Failed to send image: {e}")
 
@@ -165,6 +186,7 @@ def turn_screen_off():
     try:
         result = subprocess.run(set_image_command, shell=True, check=True, capture_output=True, text=True)
         print(f"screen is turned off")
+        update_status("screen_off", True)
     except subprocess.CalledProcessError as e:
         print(f"Failed to turn screen off {e}")
 
@@ -177,6 +199,7 @@ def turn_screen_on():
     try:
         result = subprocess.run(set_image_command, shell=True, check=True, capture_output=True, text=True)
         print(f"screen is turned on")
+        update_status("screen_on", True)
     except subprocess.CalledProcessError as e:
         print(f"Failed to turn screen on {e}")
 
@@ -208,3 +231,7 @@ def command_list():
 
     
                         
+def get_system_status():
+    """Returns a copy of the current system status."""
+    global system_status
+    return system_status.copy()

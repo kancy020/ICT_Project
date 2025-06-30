@@ -10,29 +10,38 @@ import threading
 import time
 
 # —— inject admin modules
-from admin_panel.managers.admin_manager      import AdminManager
-from admin_panel.managers.interface_manager  import interface_manager
-from admin_panel.managers.task_queue        import TaskQueueManager
-from admin_panel.managers.user_manager       import UserManager
-from admin_panel.managers.device_manager     import DeviceManager
-
 
 #Initialising the Flask application
 app = Flask(__name__)
 
-# —— inject admin & subsystems initialization
-device_mgr     = DeviceManager()
-taskq_mgr      = TaskQueueManager()
-user_mgr       = UserManager()
-admin_mgr      = AdminManager(port=9999)
-admin_mgr.set_components(
-    interface_manager,
-    taskq_mgr,
-    user_mgr,
-    device_mgr
-)
+# 监控系统 - 替代admin_manager功能
+class SimpleMonitor:
+    def __init__(self):
+        self.execution_log = []
+        self.system_status = {'status': 'running', 'last_command': None}
+    
+    def log_execution(self, execution_data):
+        import time
+        self.execution_log.append({
+            'timestamp': time.time(),
+            'execution_id': execution_data.get('execution_id', 'unknown'),
+            'user': execution_data.get('user', 'unknown'),
+            'command': execution_data.get('command', 'unknown'),
+            'status': 'executed'
+        })
+        self.system_status['last_command'] = execution_data
+        if len(self.execution_log) > 100:
+            self.execution_log = self.execution_log[-50:]
+    
+    def get_status(self):
+        return {
+            'system_status': self.system_status,
+            'recent_executions': self.execution_log[-10:] if self.execution_log else [],
+            'total_executions': len(self.execution_log)
+        }
 
-
+# 创建监控实例
+simple_monitor = SimpleMonitor()
 
 #class to hold enum values of system state
 class State():
@@ -40,16 +49,13 @@ class State():
      OFF = 2
      TIMER = 3
 
-
 # Initializing the status as ON for app entry
 status = State.ON
 mac_address = start_up_file.mac_address
 
-
 # Slack bot token which establishes connection to the slack api's event subscription, needed for obtaining images for custom emojis
 SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
 client = WebClient(token=SLACK_BOT_TOKEN)
-
 
 # Obtains the image from the custom emoji aswell as client emojis through the slash command, sends it to the input file and then process continues to the output images
 def get_emoji_url(emoji_name):
@@ -112,7 +118,6 @@ def get_emoji_url(emoji_name):
         print(f"Custom emoji processing failed: {e}")
     return None
 
-
 #Endpoint to which the slack events are received which are cnnected via a challenge request response
 @app.route('/slack/events', methods=['POST'])
 def slack_events():    
@@ -124,22 +129,18 @@ def slack_events():
     
     return Response(), 200
 
-
 #This POST method houses the main features of the program through the slack command intergration
 @app.route('/slack/command', methods=['POST'])
 def slack_command():
-    # —— inject admin command execution task
+    # 记录执行信息
     form = request.form.to_dict()
-    admin_mgr.handle_network_execution({
-        "execution_id": f"cmd_{int(time.time())}",
-        "caller_info": {
-            "function_name": "slack_command",
-            "user": form.get("user_name"),
-            "command_type": form.get("text", "").split()[0] if form.get("text") else "",
-            "raw_text": form.get("text")
-        },
-        "captured_variables": {"form": form}
-    })
+    execution_data = {
+        'execution_id': f"cmd_{int(time.time())}",
+        'user': form.get("user_name", "unknown"),
+        'command': form.get("text", "").split()[0] if form.get("text") else "unknown",
+        'raw_text': form.get("text", "")
+    }
+    simple_monitor.log_execution(execution_data)
     # Gloabl status to hold changing status events
     global status
     print(f"Current status: {status}")
@@ -293,6 +294,14 @@ def get_standard_emoji_url(emoji_char):
     codepoints = '-'.join(f"{ord(char):x}" for char in emoji_char)
     return f"https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/{codepoints}.png"
 
+
+@app.route('/admin/status', methods=['GET'])
+def admin_status():
+    return jsonify(simple_monitor.get_status())
+
+@app.route('/admin/logs', methods=['GET'])
+def admin_logs():
+    return jsonify({'logs': simple_monitor.execution_log})
 
 #Main execution of program
 if __name__ == "__main__":
